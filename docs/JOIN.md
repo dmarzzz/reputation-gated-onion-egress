@@ -19,10 +19,18 @@ npm install
 bash scripts/join.sh <your-secret>
 ```
 
-The gateway address is already built in, so you only need your secret. (If the
-operator points you at a different box, pass it first:
-`bash scripts/join.sh <gateway-onion>.onion <your-secret>`.) That command starts
-a local Tor and a small proxy, then runs a check. When it prints `PASS` next to
+The gateway address is already built in, so you only need your secret. For the
+record, the gateway onion is:
+
+```
+ezguggje6sbldhw4pl5nudwg2mrwkb5zzyu3a26qc4eka2ur24bv3eqd.onion
+```
+
+(If the operator points you at a different box, pass it ahead of your secret:
+`bash scripts/join.sh <other-gateway>.onion <your-secret>`.) Knowing the address
+buys nothing on its own. The gate is fail-closed, so without a valid membership
+proof every connection is dropped. That command starts a local Tor and a small
+proxy, then runs a check. When it prints `PASS` next to
 the gateway's IP (`204.48.28.220`), you are out.
 
 ## use it

@@ -12,5 +12,4 @@ tor/tor-client.pid
 shim-bogus.log
 keys.local.json
 demo-keys.local.md
-docs/JOIN.local.md
 docs/walkthrough.live.html
