@@ -16,10 +16,14 @@ Here is the whole thing.
 ```bash
 cd reputation-gated-onion-egress
 npm install
-bash scripts/join.sh <gateway-onion>.onion <your-secret>
+bash scripts/join.sh <your-secret>
 ```
 
-The operator gives you the `<gateway-onion>` address. That command starts a local Tor and a small proxy, then runs a check. When it prints `PASS` next to the gateway's IP, you are out.
+The gateway address is already built in, so you only need your secret. (If the
+operator points you at a different box, pass it first:
+`bash scripts/join.sh <gateway-onion>.onion <your-secret>`.) That command starts
+a local Tor and a small proxy, then runs a check. When it prints `PASS` next to
+the gateway's IP (`204.48.28.220`), you are out.
 
 ## use it
 

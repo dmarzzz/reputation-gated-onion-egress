@@ -20,11 +20,10 @@ if [ -z "${RGOE_SECRET:-}" ]; then
   echo "no RGOE_SECRET. Run:  node group/enroll.mjs   then   export RGOE_SECRET=..." >&2
   exit 1
 fi
-if [ -z "${RGOE_ONION:-}" ]; then
-  echo "no RGOE_ONION. Get the gateway address from the droplet's run-gateway.sh," >&2
-  echo "then:  export RGOE_ONION=<addr>.onion" >&2
-  exit 1
-fi
+# Default to the live deployed gateway (DigitalOcean NYC, 204.48.28.220) so a
+# friend can run with no args. Override RGOE_ONION to point at a different box.
+export RGOE_ONION="${RGOE_ONION:-ezguggje6sbldhw4pl5nudwg2mrwkb5zzyu3a26qc4eka2ur24bv3eqd.onion}"
+echo "gateway onion: ${RGOE_ONION}"
 
 # SOCKS source: reuse an existing Tor if RGOE_TOR_PORT is already set (e.g. system
 # tor 9050), otherwise start our own client-only Tor on 9260.
