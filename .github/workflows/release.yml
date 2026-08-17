@@ -92,7 +92,7 @@ jobs:
 
       - name: Install zig + cargo-zigbuild (linux cross)
         if: ${{ matrix.cross }}
-        uses: mlugg/setup-zig@v1
+        uses: mlugg/setup-zig@v2
       - name: Install cargo-zigbuild (linux cross)
         if: ${{ matrix.cross }}
         uses: taiki-e/install-action@v2
