@@ -43,7 +43,7 @@
   "dependencies": {
     "@semaphore-protocol/group": "^4.0.0",
     "@semaphore-protocol/identity": "^4.0.0",
-    "@semaphore-protocol/proof": "^4.0.0",
+    "@semaphore-protocol/proof": "^4.14.3",
     "ethers": "^6.13.4",
     "js-sha3": "^0.8.0",
     "poseidon-lite": "^0.3.0",
