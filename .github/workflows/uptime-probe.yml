@@ -60,7 +60,7 @@ jobs:
             echo "::notice title=uptime-probe skipped::RGOE_BOOTNODE_ONION + RGOE_DIR_SIGNER (or RGOE_NETWORK) are not set as repository variables; nothing to probe. See monitoring/UPTIME.md."
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: steps.cfg.outputs.configured == 'true'
 
       - uses: actions/setup-node@v4
