@@ -43,7 +43,7 @@ rgoe-proto = { path = "../rgoe-proto" }
 #   - light-poseidon: circomlib-compatible Poseidon (BN254, arity 2) == poseidon-lite.
 #   - sha3: Keccak256 for the Semaphore group zero value (keccak(be32(id)) >> 8).
 light-poseidon = "0.4"
-sha3 = "0.10"
+sha3 = "0.12"
 # T-HARD-8 runtime lock check (src/artifacts.rs): sha256 of the embedded wasm/zkey/vkey vs
 # testdata/zk-artifacts.lock.json. Both already in the tree (rgoe-proto/ed25519-dalek pull
 # sha2; hex is a workspace-wide dep), so no new transitive dependency.
