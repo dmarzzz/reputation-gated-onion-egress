@@ -16,7 +16,7 @@ num-bigint = "0.4"    # big-endian keccak digest -> BigUint >> 8 -> decimal (cal
 # T-HARD-8 artifact ids: `<circuit>-<sha256(verification_key.json)[0:16]>` (artifact_id_of), the
 # SAME hash testdata/zk-artifacts.lock.json pins. sha2 is already in the tree via ed25519-dalek,
 # so this adds no new transitive dependency.
-sha2 = "0.10"
+sha2 = "0.11"
 # NOTE: canonical_*_bytes are hand-built in fixed key order (see the encoders below),
 # NEVER via a serializer — serde is intentionally NOT a dependency of the canonical path.
 

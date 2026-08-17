@@ -47,7 +47,7 @@ sha3 = "0.10"
 # T-HARD-8 runtime lock check (src/artifacts.rs): sha256 of the embedded wasm/zkey/vkey vs
 # testdata/zk-artifacts.lock.json. Both already in the tree (rgoe-proto/ed25519-dalek pull
 # sha2; hex is a workspace-wide dep), so no new transitive dependency.
-sha2 = "0.10"
+sha2 = "0.11"
 hex = "0.4"
 
 # ark-circom 0.5 == ark 0.5 (same as zerokit rln 3.0.0). It gives us exactly what we
