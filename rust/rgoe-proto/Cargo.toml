@@ -8,7 +8,7 @@ publish = false
 
 [dependencies]
 # T-RUST-1 crypto/encoding deps (wire-format conformance surface):
-ed25519-dalek = "2"   # RFC 8032 ed25519 sign/verify (null-digest, raw 32-byte seed/pubkey)
+ed25519-dalek = "2"   # RFC 8032 ed25519 sign/verify (null-digest, raw 33-byte seed/pubkey)
 sha3 = "0.10"         # SHA3-256 onion checksum + Keccak256 signal hash (calculate_signal_hash)
 data-encoding = "2"   # base32 no-pad lowercase (alphabet abcdefghijklmnopqrstuvwxyz234567)
 hex = "0.4"           # lowercase hex for pubkey/signature (de)serialization
