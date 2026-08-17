@@ -41,7 +41,7 @@
     "mutation:test": "stryker run"
   },
   "dependencies": {
-    "@semaphore-protocol/group": "^4.0.0",
+    "@semaphore-protocol/group": "^4.14.3",
     "@semaphore-protocol/identity": "^4.0.0",
     "@semaphore-protocol/proof": "^4.0.0",
     "ethers": "^6.13.4",
