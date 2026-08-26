@@ -287,10 +287,7 @@ function observationLabel(iso) {
 function updateFreshness() {
   if (!currentSnapshot) return;
   const status = snapshotFreshness(currentSnapshot, currentView);
-  document.body.classList.toggle("is-stale", status.stale);
-  document.body.classList.toggle("is-unavailable", currentView.refreshFailed);
-  setText("[data-snapshot-state]", status.snapshotState);
-  setText("[data-view-state]", status.viewState);
+  setText("[data-snapshot-state]", `${status.snapshotState} · ${status.age.long}`);
 }
 
 function scheduleAgeRefresh() {
@@ -306,9 +303,6 @@ function showUnavailable() {
   currentSnapshot = null;
   currentView = { bundled: false, refreshFailed: true };
   window.clearTimeout(ageTimer);
-  document.body.classList.remove("is-stale");
-  document.body.classList.add("is-unavailable");
-  setText("[data-view-state]", "Public view unavailable");
   setText("[data-snapshot-state]", "Unavailable");
   setText("[data-node-count]", "—");
   setText("[data-view-time]", "Unavailable");
@@ -374,10 +368,8 @@ function scheduleNextLoad() {
 async function load() {
   if (loadActive) return;
   loadActive = true;
-  // This pulse represents the browser checking the same-origin signed aggregate. The browser
-  // never contacts the onion bootnode. A separate pulse is used when observedAt proves that the
-  // upstream observer published a new census.
-  document.body.classList.add("is-checking");
+  // The browser checks the same-origin signed aggregate and never contacts the onion bootnode.
+  // The canopy emits a stronger pulse when observedAt proves that the observer published a new census.
   stage.classList.add("is-querying");
   sceneController?.beginQuery();
   try {
@@ -402,7 +394,6 @@ async function load() {
   } finally {
     loadActive = false;
     lastLoadFinishedAt = Date.now();
-    document.body.classList.remove("is-checking");
     stage.classList.remove("is-querying");
     scheduleNextLoad();
   }

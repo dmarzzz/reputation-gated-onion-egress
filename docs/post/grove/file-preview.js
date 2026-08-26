@@ -7,10 +7,8 @@ if (window.location.protocol === "file:") {
   };
 
   const showLocalPreview = () => {
-    document.body.classList.remove("is-checking");
     document.body.classList.add("is-local-preview");
 
-    setText("[data-view-state]", "Local preview · open the hosted Grove for live stats");
     setText("[data-snapshot-state]", "Local preview");
     setText("[data-network]", "Sepolia");
     setText("[data-view-time]", "Not connected");

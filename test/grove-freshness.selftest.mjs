@@ -26,15 +26,15 @@ check("relative age has bounded hour and day forms", ageParts(OBSERVED_AT, obser
 check("minute-boundary timer wakes just after the label changes", nextAgeRefreshDelay(OBSERVED_AT, observedMs + 12 * 60_000 + 59_000) === 1_025);
 
 const fresh = snapshotFreshness(snapshot, { now: observedMs + 12 * 60_000 });
-check("fresh signed snapshots are visibly verified", fresh.viewState === "Network snapshot verified · 12 min ago" && fresh.snapshotState === "Verified" && !fresh.stale);
+check("fresh signed snapshots expose a verified state and relative age", fresh.snapshotState === "Verified" && fresh.age.long === "12 min ago" && !fresh.stale);
 check("three cadence intervals remain the explicit freshness boundary", !snapshotFreshness(snapshot, { now: observedMs + 45 * 60_000 }).stale && snapshotFreshness(snapshot, { now: observedMs + 46 * 60_000 }).stale);
 
 const delayed = snapshotFreshness(snapshot, { now: observedMs + 12 * 60_000, refreshFailed: true });
-check("refresh errors preserve and label the last verified live view", delayed.viewState === "Update unavailable · last verified 12 min ago" && delayed.snapshotState === "Update delayed" && !delayed.stale);
+check("refresh errors preserve and label the last verified live view", delayed.snapshotState === "Update delayed" && delayed.age.long === "12 min ago" && !delayed.stale);
 const delayedStale = snapshotFreshness(snapshot, { now: observedMs + 46 * 60_000, refreshFailed: true });
 check("a delayed live view becomes stale as its clock advances", delayedStale.snapshotState === "Stale" && delayedStale.stale);
 
 const reference = snapshotFreshness(snapshot, { now: observedMs + 12 * 60_000, bundled: true });
-check("the deploy-bundled fallback is always labeled as a reference", reference.viewState === "Signed pre-v4 reference · 12 min ago" && reference.snapshotState === "Reference" && reference.stale);
+check("the deploy-bundled fallback is always labeled as a reference", reference.snapshotState === "Reference" && reference.age.long === "12 min ago" && reference.stale);
 
 console.log(`PASS: Grove freshness selftest (${checks.length} checks)`);

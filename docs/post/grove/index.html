@@ -20,7 +20,7 @@
   <script src="./file-preview.js" defer></script>
   <title>Shade Tree Grove Network Stats</title>
 </head>
-<body class="network-page is-checking">
+<body class="network-page">
   <a class="skip-link" href="#grove-main">Skip to Grove details</a>
 
   <main id="grove-main">
@@ -51,18 +51,12 @@
           </div>
           <canvas id="network-canvas" aria-hidden="true"></canvas>
         </div>
-        <div class="network-foot">
-          <div class="snapshot-state" role="status" aria-live="polite">
-            <span class="state-pulse" aria-hidden="true"></span>
-            <span data-view-state>Checking signed aggregate</span>
-          </div>
-        </div>
       </div>
 
       <aside class="provenance-panel" aria-label="Snapshot provenance">
         <div class="provenance-head">
           <span>Snapshot</span>
-          <strong data-snapshot-state>Verifying</strong>
+          <strong data-snapshot-state role="status" aria-live="polite" aria-atomic="true">Verifying</strong>
         </div>
         <dl>
           <div class="provenance-count"><dt>Announced nodes</dt><dd data-node-count>…</dd></div>
