@@ -14,6 +14,14 @@
   },
   "rewrites": [
     {
+      "source": "/lab.css",
+      "destination": "/lab/lab.css"
+    },
+    {
+      "source": "/lab.js",
+      "destination": "/lab/lab.js"
+    },
+    {
       "source": "/api/v1/data/grove/sepolia/head",
       "destination": "/api/grove"
     },
