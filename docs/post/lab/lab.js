@@ -1,236 +1,261 @@
-/* global CustomEvent, document, history, navigator, URL, window */
+/* global document, fetch, TextDecoder, window */
 
-const scenarios = {
-  "invited-success": {
-    kind: "Invited passage",
-    title: "One proof. No name.",
-    failAt: null,
-    resultState: "Passage opened",
-    resultTitle: "First passage under the Shade Tree",
-    facts: [
-      "Hidden-leaf membership verified",
-      "Node reached through a Tor onion service",
-      "Proof-gated CONNECT opened",
-    ],
-  },
-  "staked-success": {
-    kind: "Staked passage",
-    title: "Reputation becomes a private root.",
-    failAt: null,
-    resultState: "Passage opened",
-    resultTitle: "Stake admitted without naming its leaf",
-    facts: [
-      "Finalized staked root selected",
-      "Groth16 proof hid the member commitment",
-      "Local tunnel budget accepted the slot",
-    ],
-  },
-  "paid-success": {
-    kind: "Paid passage",
-    title: "Access issued. Payment stays off the path.",
-    failAt: null,
-    resultState: "Passage opened",
-    resultTitle: "Issued access crossed the Grove",
-    facts: [
-      "Paid access root selected",
-      "The node saw a proof, not a payment receipt",
-      "The destination saw the Shade Tree node IP",
-    ],
-  },
-  "outsider-denied": {
-    kind: "Unknown leaf",
-    title: "No admitted root. No passage.",
-    failAt: 3,
-    resultState: "Proof rejected",
-    resultTitle: "The outsider stops at the gate",
-    facts: [
-      "Canopy verification completed",
-      "Membership proof matched no admitted root",
-      "No Tor tunnel or destination connection opened",
-    ],
-  },
-  "budget-exhausted": {
-    kind: "Budget exhausted",
-    title: "Membership passes. The slot does not.",
-    failAt: 5,
-    resultState: "Tunnel denied",
-    resultTitle: "The local budget closes the path",
-    facts: [
-      "Hidden-leaf membership verified",
-      "Tor delivered the sealed request to the node",
-      "The epoch-scoped tunnel budget refused the slot",
-    ],
-  },
+const stages = ["discover", "select", "prove", "dial", "gate", "egress"];
+const phaseToStage = { canopy: "discover", select: "select", prove: "prove", dial: "dial", gate: "gate", egress: "egress" };
+const stageCopy = {
+  discover: "Fetching the Elder Tree's signed Canopy through Tor, then checking its pinned signer.",
+  select: "Filtering the verified Grove for an invited-capable Protocol v4 Shade Tree node.",
+  prove: "Minting one target-bound RLN Groth16 membership proof with a fresh epoch slot.",
+  dial: "Opening a Tor circuit to the selected Shade Tree node's onion service.",
+  gate: "The node is checking the proof, root, nullifier, artifact, and local tunnel budget.",
+  egress: "The admitted node opened an opaque CONNECT tunnel; TLS terminates only at example.com.",
 };
 
-const stageDetails = [
-  ["Proxy", "The local Proxy binds the requested destination into a fresh protocol signal."],
-  ["Canopy", "The Proxy verifies the Elder Tree signature, protocol range, node capabilities, and admitted roots."],
-  ["Hidden leaf", "Groth16 RLN proves one rate-commitment leaf belongs to an admitted root without revealing which leaf."],
-  ["Tor onion", "The request travels to the selected node's onion service. The Elder Tree stays off this traffic path."],
-  ["Shade Tree", "The node verifies the proof and epoch-scoped budget before opening an opaque CONNECT tunnel."],
-];
+const runButton = document.querySelector("[data-run]");
+const runLabel = document.querySelector("[data-run-label]");
+const routeMap = document.querySelector("[data-route-map]");
+const traceStatus = document.querySelector("[data-trace-status]");
+const eventIndex = document.querySelector("[data-event-index]");
+const eventCopy = document.querySelector("[data-event-copy]");
+const nodeAlias = document.querySelector("[data-node-alias]");
+const proofState = document.querySelector("[data-proof-state]");
+const responseStrip = document.querySelector("[data-response-strip]");
+const responseCode = document.querySelector("[data-response-code]");
+const responseAnswer = document.querySelector("[data-response-answer]");
+const responseTime = document.querySelector("[data-response-time]");
+let currentStage = null;
+let running = false;
+let cooldownTimer = null;
 
-const form = document.querySelector(".scenario-selector");
-const map = document.querySelector("[data-passage-map]");
-const steps = [...document.querySelectorAll("[data-step]")];
-const result = document.querySelector("[data-result]");
-const kind = document.querySelector("[data-trace-kind]");
-const title = document.querySelector("[data-trace-title]");
-const clock = document.querySelector("[data-trace-clock]");
-const detailLabel = document.querySelector("[data-detail-label]");
-const detailCopy = document.querySelector("[data-detail-copy]");
-const resultState = document.querySelector("[data-result-state]");
-const resultTitle = document.querySelector("[data-result-title]");
-const resultFacts = document.querySelector("[data-result-facts]");
-const shareButton = document.querySelector("[data-share]");
-const copyButton = document.querySelector("[data-copy-link]");
-const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-let runToken = 0;
-const canonicalLabUrl = "https://shade-tree-node.vercel.app/lab/";
-
-function selectedScenario() {
-  return form?.elements.scenario.value || "invited-success";
+function stageElement(stage) {
+  return document.querySelector(`[data-stage="${stage}"]`);
 }
 
-function fixtureUrl(name = selectedScenario()) {
-  const url = new URL(canonicalLabUrl);
-  url.searchParams.set("scenario", name);
-  return url.toString();
+function setStage(stage, state = "active") {
+  const index = stages.indexOf(stage);
+  if (index < 0) return;
+  stages.forEach((name, at) => {
+    const element = stageElement(name);
+    if (at < index) element.dataset.state = "done";
+    else if (at === index) element.dataset.state = state;
+    else delete element.dataset.state;
+  });
+  currentStage = stage;
+  routeMap.style.setProperty("--route-progress", String(Math.round(((index + (state === "done" ? 1 : 0.55)) / stages.length) * 100)));
+  eventIndex.textContent = `${String(index + 1).padStart(2, "0")} / 06`;
 }
 
-function announceEvent(event, scenario) {
-  document.dispatchEvent(new CustomEvent("shade-tree-lab", {
-    detail: { event, scenario },
-  }));
+function reset() {
+  stages.forEach((stage) => delete stageElement(stage).dataset.state);
+  routeMap.style.setProperty("--route-progress", "0");
+  delete routeMap.dataset.failed;
+  currentStage = null;
+  traceStatus.textContent = "Contacting the live runner";
+  eventIndex.textContent = "00 / 06";
+  eventCopy.textContent = "The browser is opening a same-origin event stream. No member key or destination input is sent.";
+  nodeAlias.textContent = "awaiting route";
+  proofState.textContent = "Waiting";
+  proofState.dataset.state = "live";
+  document.querySelector("[data-artifact]").textContent = "not minted";
+  document.querySelector("[data-slot]").textContent = "—";
+  document.querySelector("[data-epoch]").textContent = "—";
+  document.querySelectorAll("[data-proof]").forEach((element) => { element.textContent = "—"; element.removeAttribute("title"); });
+  for (const section of ["a", "b", "c"]) document.querySelector(`[data-proof-panel="${section}"]`).replaceChildren();
+  delete responseStrip.dataset.state;
+  responseCode.textContent = "—";
+  responseAnswer.textContent = "Request in progress";
+  responseTime.textContent = "—";
 }
 
-function resetTrace(name) {
-  const scenario = scenarios[name] || scenarios["invited-success"];
-  runToken += 1;
-  kind.textContent = scenario.kind;
-  title.textContent = scenario.title;
-  clock.textContent = "Ready";
-  detailLabel.textContent = "Route ready";
-  detailCopy.textContent = "Select a trace, then walk the recorded protocol path.";
-  map.style.setProperty("--route-progress", "0");
-  map.dataset.progress = "0";
-  delete map.dataset.result;
-  for (const step of steps) delete step.dataset.state;
-  result.hidden = true;
-  result.removeAttribute("data-outcome");
-  history.replaceState(null, "", `?scenario=${encodeURIComponent(name)}`);
+function setExact(element, value) {
+  const text = String(value ?? "—");
+  element.textContent = text;
+  if (text !== "—") element.title = text;
 }
 
-function sleep(ms, token) {
-  return new Promise((resolve) => {
-    window.setTimeout(() => resolve(token === runToken), ms);
+function proofRow(label, value) {
+  const row = document.createElement("div");
+  const term = document.createElement("dt");
+  const detail = document.createElement("dd");
+  const code = document.createElement("code");
+  term.textContent = label;
+  setExact(code, value);
+  detail.append(code);
+  row.append(term, detail);
+  return row;
+}
+
+function renderPoint(section, point) {
+  const panel = document.querySelector(`[data-proof-panel="${section}"]`);
+  const values = section === "b"
+    ? [
+        ["b 0,0", point?.[0]?.[0]], ["b 0,1", point?.[0]?.[1]],
+        ["b 1,0", point?.[1]?.[0]], ["b 1,1", point?.[1]?.[1]],
+        ["projective", point?.[2]?.join(", ")],
+      ]
+    : [[`${section} x`, point?.[0]], [`${section} y`, point?.[1]], ["projective", point?.[2]]];
+  panel.replaceChildren(...values.map(([label, value]) => proofRow(label, value)));
+}
+
+function renderProof(event) {
+  document.querySelector("[data-artifact]").textContent = event.artifact || "unknown";
+  document.querySelector("[data-slot]").textContent = event.slot ?? "—";
+  document.querySelector("[data-epoch]").textContent = event.epoch || "—";
+  for (const [name, value] of Object.entries(event.pub || {})) {
+    const element = document.querySelector(`[data-proof="pub.${name}"]`);
+    if (element) setExact(element, value);
+  }
+  renderPoint("a", event.pi?.a);
+  renderPoint("b", event.pi?.b);
+  renderPoint("c", event.pi?.c);
+  proofState.textContent = "Minted";
+  proofState.dataset.state = "done";
+}
+
+function eventMessage(event) {
+  if (event.phase === "canopy" && event.status === "query") return "Querying the Elder Tree for a fresh signed Canopy over Tor.";
+  if (event.phase === "canopy" && event.status === "verified") return `Pinned signature verified. ${event.count ?? "The"} live Shade Tree nodes are in this Canopy.`;
+  if (event.phase === "canopy" && event.status === "cache") return `Fresh discovery was unavailable; using a previously verified ${event.count ?? ""}-node Canopy.`;
+  if (event.phase === "select" && event.status === "done") return `${event.candidates?.length ?? 0} invited-capable nodes passed local selection; the first is now being tried.`;
+  if (event.phase === "prove" && event.status === "start") return `Loading ${event.artifact || "the accepted artifact"} and minting a target-bound proof.`;
+  if (event.phase === "prove" && event.status === "done") return `Groth16 proof minted in slot ${event.slot}; its public signals and curve points are now visible.`;
+  if (event.phase === "dial" && event.status === "start") return `Dialing ${event.node || "a selected node"} as a Tor onion service.`;
+  if (event.phase === "dial" && event.status === "done") return `${event.node || "The node"} answered through Tor${event.latencyMs != null ? ` in ${event.latencyMs} ms` : ""}.`;
+  if (event.phase === "dial" && event.status === "failover") return `${event.node || "A node"} did not complete; the same proof is moving to the next candidate.`;
+  if (event.phase === "gate" && event.status === "start") return `${event.node || "The node"} is verifying the proof before it opens any destination socket.`;
+  if (event.phase === "gate" && event.status === "done") return `${event.node || "The node"} accepted the private membership proof and local epoch slot.`;
+  if (event.phase === "egress" && event.status === "start") return stageCopy.egress;
+  if (event.phase === "egress" && event.status === "done") return `example.com returned HTTP ${event.httpStatus}. The TLS request completed through the admitted node.`;
+  return stageCopy[phaseToStage[event.phase]] || "The live protocol emitted a new event.";
+}
+
+function handleTrace(event) {
+  if (event.phase === "run") return;
+  const stage = phaseToStage[event.phase];
+  if (stage) setStage(stage, event.status === "done" || event.status === "verified" ? "done" : "active");
+  if (event.node) nodeAlias.textContent = event.node;
+  if (event.phase === "prove" && event.status === "done") renderProof(event);
+  traceStatus.textContent = event.status === "done" || event.status === "verified" ? `${stage || event.phase} complete` : `${stage || event.phase} · ${event.status}`;
+  eventCopy.textContent = eventMessage(event);
+}
+
+function handleDone(result) {
+  setStage("egress", "done");
+  routeMap.style.setProperty("--route-progress", "100");
+  traceStatus.textContent = "Live route complete";
+  eventCopy.textContent = "The destination response returned to this browser through the Shade Tree route.";
+  responseStrip.dataset.state = "done";
+  responseCode.textContent = String(result.status ?? "200");
+  responseAnswer.textContent = result.answer || "Response received";
+  responseTime.textContent = Number.isFinite(result.durationMs) ? `${(result.durationMs / 1000).toFixed(1)} s` : "complete";
+}
+
+function handleFailed(result) {
+  if (currentStage) stageElement(currentStage).dataset.state = "failed";
+  routeMap.dataset.failed = "true";
+  traceStatus.textContent = "Live route stopped";
+  eventCopy.textContent = result.message || "The live route did not complete.";
+  proofState.textContent = proofState.textContent === "Minted" ? "Minted" : "Stopped";
+  if (proofState.textContent !== "Minted") proofState.dataset.state = "failed";
+  responseStrip.dataset.state = "failed";
+  responseCode.textContent = "ERR";
+  responseAnswer.textContent = result.code || "Route unavailable";
+}
+
+function parseBlock(block) {
+  let type = "message";
+  const data = [];
+  for (const line of block.split("\n")) {
+    if (line.startsWith("event:")) type = line.slice(6).trim();
+    if (line.startsWith("data:")) data.push(line.slice(5).trimStart());
+  }
+  if (!data.length) return;
+  const value = JSON.parse(data.join("\n"));
+  if (type === "trace") handleTrace(value);
+  else if (type === "done") handleDone(value);
+  else if (type === "failed") handleFailed(value);
+}
+
+async function consumeEvents(response) {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  while (true) {
+    const { value, done } = await reader.read();
+    buffer += decoder.decode(value || new Uint8Array(), { stream: !done }).replaceAll("\r\n", "\n");
+    let boundary;
+    while ((boundary = buffer.indexOf("\n\n")) >= 0) {
+      const block = buffer.slice(0, boundary);
+      buffer = buffer.slice(boundary + 2);
+      if (block.trim()) parseBlock(block);
+    }
+    if (done) break;
+  }
+  if (buffer.trim()) parseBlock(buffer);
+}
+
+function beginCooldown(seconds) {
+  window.clearInterval(cooldownTimer);
+  let remaining = Math.max(1, Number(seconds) || 16);
+  runButton.disabled = true;
+  const tick = () => {
+    runLabel.textContent = `Available in ${remaining}s`;
+    remaining -= 1;
+    if (remaining < 0) {
+      window.clearInterval(cooldownTimer);
+      runButton.disabled = false;
+      runLabel.textContent = "Send live request";
+    }
+  };
+  tick();
+  cooldownTimer = window.setInterval(tick, 1000);
+}
+
+async function run() {
+  if (running) return;
+  running = true;
+  runButton.disabled = true;
+  runLabel.textContent = "Route in motion";
+  reset();
+  try {
+    const response = await fetch("../api/lab-run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      const retryAfter = response.headers.get("retry-after");
+      handleFailed({ code: response.status === 429 ? "COOLDOWN" : "RUNNER_UNAVAILABLE", message: response.status === 429 ? "Another live proof just used this bounded runner. The next slot opens shortly." : "The live runner is unavailable right now." });
+      if (response.status === 429) beginCooldown(retryAfter);
+      return;
+    }
+    await consumeEvents(response);
+    beginCooldown(16);
+  } catch {
+    handleFailed({ code: "STREAM_INTERRUPTED", message: "The live event stream was interrupted before the route completed." });
+  } finally {
+    running = false;
+    if (!cooldownTimer) {
+      runButton.disabled = false;
+      runLabel.textContent = "Send live request";
+    }
+  }
+}
+
+for (const tab of document.querySelectorAll("[data-proof-tab]")) {
+  tab.addEventListener("click", () => {
+    const section = tab.dataset.proofTab;
+    document.querySelectorAll("[data-proof-tab]").forEach((button) => button.setAttribute("aria-selected", String(button === tab)));
+    document.querySelectorAll("[data-proof-panel]").forEach((panel) => { panel.hidden = panel.dataset.proofPanel !== section; });
   });
 }
 
-function renderResult(scenario) {
-  const denied = Boolean(scenario.failAt);
-  resultState.textContent = scenario.resultState;
-  resultTitle.textContent = scenario.resultTitle;
-  resultFacts.replaceChildren(...scenario.facts.map((fact) => {
-    const item = document.createElement("li");
-    item.textContent = fact;
-    return item;
-  }));
-  result.dataset.outcome = denied ? "denied" : "opened";
-  result.hidden = false;
-  clock.textContent = denied ? "Closed" : "Complete";
-  map.dataset.result = denied ? "denied" : "opened";
-  announceEvent(denied ? "trace_denied" : "trace_completed", selectedScenario());
+if (window.location.protocol === "file:") {
+  runButton.disabled = true;
+  runLabel.textContent = "Open hosted Lab";
+  traceStatus.textContent = "Local visual preview";
+  eventCopy.textContent = "This direct-file preview keeps the interface styled, but live Tor requests run only from the hosted Lab.";
+} else {
+  runButton.addEventListener("click", run);
 }
-
-async function walkTrace() {
-  const name = selectedScenario();
-  const scenario = scenarios[name];
-  resetTrace(name);
-  const token = runToken;
-  announceEvent("lab_started", name);
-
-  for (let index = 0; index < steps.length; index += 1) {
-    if (token !== runToken) return;
-    const stepNumber = index + 1;
-    const step = steps[index];
-    step.dataset.state = "active";
-    clock.textContent = `Step ${stepNumber} / 5`;
-    detailLabel.textContent = stageDetails[index][0];
-    detailCopy.textContent = stageDetails[index][1];
-    map.style.setProperty("--route-progress", String(stepNumber * 20));
-    map.dataset.progress = String(stepNumber);
-
-    if (!reducedMotion && !(await sleep(620, token))) return;
-
-    if (scenario.failAt === stepNumber) {
-      step.dataset.state = "denied";
-      renderResult(scenario);
-      return;
-    }
-    step.dataset.state = "passed";
-  }
-
-  renderResult(scenario);
-}
-
-async function copyRoute() {
-  const link = fixtureUrl();
-  try {
-    await navigator.clipboard.writeText(link);
-    copyButton.textContent = "Route copied";
-  } catch {
-    const helper = document.createElement("textarea");
-    helper.value = link;
-    helper.readOnly = true;
-    helper.style.position = "fixed";
-    helper.style.left = "-9999px";
-    document.body.append(helper);
-    helper.select();
-    document.execCommand?.("copy");
-    helper.remove();
-    copyButton.textContent = "Route selected";
-  }
-  announceEvent("route_copied", selectedScenario());
-  window.setTimeout(() => { copyButton.textContent = "Copy route link"; }, 1800);
-}
-
-async function shareRoute() {
-  const name = selectedScenario();
-  const scenario = scenarios[name];
-  const data = {
-    title: "Shade Tree Protocol Lab",
-    text: `${scenario.resultTitle}. Walk the recorded v4 protocol fixture:`,
-    url: fixtureUrl(name),
-  };
-
-  if (navigator.share) {
-    try {
-      await navigator.share(data);
-      announceEvent("route_shared", name);
-      return;
-    } catch (error) {
-      if (error?.name === "AbortError") return;
-    }
-  }
-
-  const intent = new URL("https://twitter.com/intent/tweet");
-  intent.searchParams.set("text", `${data.text} ${data.url}`);
-  window.open(intent, "_blank", "noopener,noreferrer");
-  announceEvent("route_shared", name);
-}
-
-const requested = new URL(window.location.href).searchParams.get("scenario");
-const initial = Object.hasOwn(scenarios, requested) ? requested : "invited-success";
-const initialInput = form?.querySelector(`input[value="${initial}"]`);
-if (initialInput) initialInput.checked = true;
-resetTrace(initial);
-
-form?.addEventListener("change", () => resetTrace(selectedScenario()));
-form?.addEventListener("submit", (event) => {
-  event.preventDefault();
-  walkTrace();
-});
-shareButton?.addEventListener("click", shareRoute);
-copyButton?.addEventListener("click", copyRoute);

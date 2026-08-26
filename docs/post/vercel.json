@@ -7,6 +7,9 @@
     },
     "api/grove-v2.mjs": {
       "maxDuration": 5
+    },
+    "api/lab-run.mjs": {
+      "maxDuration": 120
     }
   },
   "rewrites": [

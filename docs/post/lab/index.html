@@ -3,164 +3,147 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Walk a recorded Shade Tree v4 passage from private membership proof to proof-gated egress.">
-  <meta name="theme-color" content="#07100c">
-  <meta property="og:title" content="Shade Tree Protocol Lab">
-  <meta property="og:description" content="Walk the proof-gated path. A recorded protocol fixture, not public Grove traffic.">
+  <meta name="description" content="Send one live request through Shade Tree Grove and inspect every protocol step and its Groth16 proof.">
+  <meta name="theme-color" content="#050b08">
+  <meta property="og:title" content="Live Protocol Lab · Shade Tree Grove">
+  <meta property="og:description" content="One real request. Every private-routing step. The actual ZK proof.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://shade-tree-node.vercel.app/lab/">
   <meta property="og:image" content="https://shade-tree-node.vercel.app/fig/shade-tree-lab-og.png">
-  <meta property="og:image:alt" content="A private golden passage crossing a dark grove">
-  <meta name="twitter:card" content="summary_large_image">
   <link rel="canonical" href="https://shade-tree-node.vercel.app/lab/">
   <link rel="icon" href="../favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="../site.css">
-  <link rel="stylesheet" href="../lab/lab.css">
-  <script type="module" src="../lab/lab.js"></script>
-  <title>Protocol Lab · Shade Tree Grove</title>
+  <link rel="stylesheet" href="./lab.css">
+  <script type="module" src="./lab.js"></script>
+  <title>Live Protocol Lab · Shade Tree Grove</title>
 </head>
 <body class="lab-page">
-  <a class="skip-link" href="#lab-main">Skip to the Protocol Lab</a>
+  <a class="skip-link" href="#lab-main">Skip to the live Lab</a>
 
-  <nav class="site-nav" aria-label="Primary navigation">
+  <nav class="site-nav lab-nav" aria-label="Primary navigation">
     <a class="wordmark" href="../index.html" aria-label="Shade Tree Grove home">
       <span class="tree-mark" aria-hidden="true"><i></i><i></i><i></i></span>
       <span>Shade Tree Grove</span>
     </a>
     <div class="nav-links">
-      <a aria-current="page" href="../lab/index.html">Lab</a>
+      <a aria-current="page" href="./index.html">Lab</a>
       <a href="../grove/index.html">Grove</a>
       <a href="../research/index.html">Research</a>
       <a href="https://github.com/dmarzzz/shade-tree-node">Source</a>
     </div>
   </nav>
 
-  <main id="lab-main" class="lab-main">
-    <header class="lab-intro">
-      <div>
-        <p class="lab-kicker">Protocol Lab</p>
-        <h1>Walk a passage<br>under the Grove.</h1>
+  <main id="lab-main" class="lab-shell">
+    <header class="lab-command">
+      <div class="lab-title">
+        <span class="live-mark"><i aria-hidden="true"></i> Live protocol lab</span>
+        <h1>One request, under the trees.</h1>
       </div>
-      <div class="lab-brief">
-        <p>Follow one recorded v4 trace from a hidden membership proof to proof-gated egress.</p>
-        <p class="fixture-note"><strong>Protocol fixture.</strong> No public Grove traffic is created, and this page does not send a destination anywhere.</p>
+      <div class="target-lock" aria-label="Fixed request destination">
+        <span>Destination</span>
+        <strong>example.com</strong>
+        <em>fixed</em>
       </div>
+      <button class="run-button" type="button" data-run>
+        <span data-run-label>Send live request</span>
+        <i aria-hidden="true">→</i>
+      </button>
     </header>
 
-    <div class="lab-workbench">
-      <form class="scenario-selector" aria-labelledby="scenario-title">
-        <fieldset>
-          <legend id="scenario-title">Choose a field trace</legend>
-          <label>
-            <input type="radio" name="scenario" value="invited-success" checked>
-            <span><strong>Invited passage</strong><small>Known root, unused slot</small></span>
-          </label>
-          <label>
-            <input type="radio" name="scenario" value="staked-success">
-            <span><strong>Staked passage</strong><small>Finalized membership root</small></span>
-          </label>
-          <label>
-            <input type="radio" name="scenario" value="paid-success">
-            <span><strong>Paid passage</strong><small>Issued access commitment</small></span>
-          </label>
-          <label>
-            <input type="radio" name="scenario" value="outsider-denied">
-            <span><strong>Unknown leaf</strong><small>Membership proof fails</small></span>
-          </label>
-          <label>
-            <input type="radio" name="scenario" value="budget-exhausted">
-            <span><strong>Budget exhausted</strong><small>Valid member, no slot left</small></span>
-          </label>
-        </fieldset>
-        <button class="walk-button" type="submit">Walk this route <span aria-hidden="true">&#8594;</span></button>
-        <p class="no-network"><span aria-hidden="true"></span> Recorded locally. Zero live requests.</p>
-      </form>
-
-      <section class="passage" aria-labelledby="passage-title">
-        <header class="passage-header">
+    <div class="lab-grid">
+      <section class="route-console" aria-labelledby="route-title">
+        <header class="panel-heading">
           <div>
-            <span data-trace-kind>Invited passage</span>
-            <h2 id="passage-title" data-trace-title>One proof. No name.</h2>
+            <span>Network trace</span>
+            <h2 id="route-title">The request path</h2>
           </div>
-          <output class="trace-clock" aria-live="polite" data-trace-clock>Ready</output>
+          <output class="trace-status" data-trace-status aria-live="polite">Ready for a live run</output>
         </header>
 
-        <div class="passage-map" data-passage-map data-progress="0">
-          <svg class="route-line" viewBox="0 0 1000 330" preserveAspectRatio="none" aria-hidden="true">
-            <path class="route-shadow" d="M38 232 C126 232 125 82 242 82 S355 251 451 251 S568 92 653 92 S775 222 961 188" pathLength="100"></path>
-            <path class="route-progress" d="M38 232 C126 232 125 82 242 82 S355 251 451 251 S568 92 653 92 S775 222 961 188" pathLength="100"></path>
+        <div class="route-map" data-route-map style="--route-progress: 0">
+          <svg class="route-line" viewBox="0 0 1000 310" preserveAspectRatio="none" aria-hidden="true">
+            <path class="route-shadow" pathLength="100" d="M32 172 C124 32 250 42 322 162 S510 300 594 156 S778 25 968 164"/>
+            <path class="route-progress" pathLength="100" d="M32 172 C124 32 250 42 322 162 S510 300 594 156 S778 25 968 164"/>
           </svg>
-
-          <ol class="route-stages">
-            <li data-step="1">
-              <span class="stage-mark">1</span>
-              <div><strong>Proxy</strong><span>Bind the destination to this request</span></div>
+          <ol class="route-stages" aria-label="Live request stages">
+            <li data-stage="discover">
+              <span class="stage-node">01</span>
+              <div><strong>Discover</strong><span>verify signed Canopy</span></div>
             </li>
-            <li data-step="2">
-              <span class="stage-mark">2</span>
-              <div><strong>Canopy</strong><span>Verify routes and admitted roots</span></div>
+            <li data-stage="select">
+              <span class="stage-node">02</span>
+              <div><strong>Choose node</strong><span>admission + capability</span></div>
             </li>
-            <li data-step="3">
-              <span class="stage-mark">3</span>
-              <div><strong>Hidden leaf</strong><span>Verify Groth16 RLN membership</span></div>
+            <li data-stage="prove">
+              <span class="stage-node">03</span>
+              <div><strong>Prove</strong><span>mint Groth16 RLN</span></div>
             </li>
-            <li data-step="4">
-              <span class="stage-mark">4</span>
-              <div><strong>Tor onion</strong><span>Carry the sealed request to a node</span></div>
+            <li data-stage="dial">
+              <span class="stage-node">04</span>
+              <div><strong>Tor</strong><span>dial onion service</span></div>
             </li>
-            <li data-step="5">
-              <span class="stage-mark">5</span>
-              <div><strong>Shade Tree</strong><span>Check the tunnel budget, then dial</span></div>
+            <li data-stage="gate">
+              <span class="stage-node">05</span>
+              <div><strong>Verify</strong><span>node admits proof</span></div>
+            </li>
+            <li data-stage="egress">
+              <span class="stage-node">06</span>
+              <div><strong>Request</strong><span>TLS to destination</span></div>
             </li>
           </ol>
         </div>
 
-        <div class="trace-detail" aria-live="polite">
-          <span data-detail-label>Route ready</span>
-          <p data-detail-copy>Select a trace, then walk the recorded protocol path.</p>
+        <div class="event-readout">
+          <span data-event-index>00 / 06</span>
+          <p data-event-copy>The browser asks our runner to make one bounded request. The member key never reaches this page.</p>
+          <strong data-node-alias>awaiting route</strong>
+        </div>
+      </section>
+
+      <aside class="proof-console" aria-labelledby="proof-title">
+        <header class="panel-heading proof-heading">
+          <div>
+            <span>Groth16 inspector</span>
+            <h2 id="proof-title">The ZK proof</h2>
+          </div>
+          <span class="proof-state" data-proof-state>Waiting</span>
+        </header>
+
+        <div class="proof-meta">
+          <div><span>Artifact</span><code data-artifact>not minted</code></div>
+          <div><span>Slot</span><code data-slot>—</code></div>
+          <div><span>Epoch</span><code data-epoch>—</code></div>
         </div>
 
-        <section class="passage-result" hidden data-result aria-labelledby="result-title">
-          <div class="result-heading">
-            <span data-result-state>Passage opened</span>
-            <h3 id="result-title" data-result-title>First passage under the Shade Tree</h3>
-          </div>
-          <ul data-result-facts>
-            <li>Hidden-leaf membership verified</li>
-            <li>Node reached through a Tor onion service</li>
-            <li>Proof-gated CONNECT opened</li>
-          </ul>
-          <p class="result-boundary">This fixture explains protocol behavior. It is not a cryptographic receipt for a person, tunnel, or destination.</p>
-          <div class="result-actions">
-            <button type="button" data-share>Share this route</button>
-            <button type="button" data-copy-link>Copy route link</button>
-            <a href="../agent/index.html">Run locally <span aria-hidden="true">&#8594;</span></a>
-          </div>
-        </section>
-      </section>
+        <div class="proof-tabs" role="tablist" aria-label="Proof sections">
+          <button type="button" role="tab" aria-selected="true" aria-controls="proof-public" id="tab-public" data-proof-tab="public">Signals</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="proof-a" id="tab-a" data-proof-tab="a">π A</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="proof-b" id="tab-b" data-proof-tab="b">π B</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="proof-c" id="tab-c" data-proof-tab="c">π C</button>
+        </div>
+
+        <div class="proof-values">
+          <dl id="proof-public" role="tabpanel" aria-labelledby="tab-public" data-proof-panel="public">
+            <div><dt>root</dt><dd><code data-proof="pub.root">—</code></dd></div>
+            <div><dt>nullifier</dt><dd><code data-proof="pub.nullifier">—</code></dd></div>
+            <div><dt>x</dt><dd><code data-proof="pub.x">—</code></dd></div>
+            <div><dt>y</dt><dd><code data-proof="pub.y">—</code></dd></div>
+            <div><dt>external</dt><dd><code data-proof="pub.externalNullifier">—</code></dd></div>
+          </dl>
+          <dl id="proof-a" role="tabpanel" aria-labelledby="tab-a" data-proof-panel="a" hidden></dl>
+          <dl id="proof-b" role="tabpanel" aria-labelledby="tab-b" data-proof-panel="b" hidden></dl>
+          <dl id="proof-c" role="tabpanel" aria-labelledby="tab-c" data-proof-panel="c" hidden></dl>
+        </div>
+
+        <p class="proof-note">These are the public signals and curve points the selected Shade Tree node actually verified. Your identity and secret are absent.</p>
+      </aside>
     </div>
 
-    <section class="lab-boundaries" aria-labelledby="boundaries-title">
-      <h2 id="boundaries-title">What the trace leaves behind</h2>
-      <dl>
-        <div><dt>Public here</dt><dd>A scenario name and a replayable fixture URL.</dd></div>
-        <div><dt>Never in the card</dt><dd>IP, target, onion, wallet, commitment, root, nullifier, proof, receipt bytes, or exact time.</dd></div>
-        <div><dt>Try the real protocol</dt><dd>Run a local v4 Grove with an operator-supplied profile. There is no public v4 service yet.</dd></div>
-      </dl>
-    </section>
+    <footer class="response-strip" data-response-strip>
+      <div><span>HTTPS response</span><strong data-response-code>—</strong></div>
+      <p data-response-answer>No request sent yet</p>
+      <div class="response-time"><span>End to end</span><strong data-response-time>—</strong></div>
+    </footer>
   </main>
-
-  <footer class="site-footer">
-    <div class="footer-signature">
-      <p>The best shade asks for proof, not a name.</p>
-      <span>Research preview</span>
-    </div>
-    <nav aria-label="Project links">
-      <a href="../agent/index.html">Run locally</a>
-      <a href="https://github.com/dmarzzz/shade-tree-node/blob/main/specs/protocol.md">Protocol</a>
-      <a href="https://github.com/dmarzzz/shade-tree-node/blob/main/docs/THREAT-MODEL.md">Threat model</a>
-      <a href="https://github.com/dmarzzz/shade-tree-node">Source</a>
-    </nav>
-  </footer>
 </body>
 </html>
