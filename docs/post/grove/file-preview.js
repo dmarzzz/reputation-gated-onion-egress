@@ -16,8 +16,6 @@ if (window.location.protocol === "file:") {
     setText("[data-view-time]", "Not connected");
     setText("[data-snapshot-cadence]", "15 min");
     setText("[data-node-count]", "—");
-    setText("[data-view-age]", "Not connected");
-    setText("[data-node-hours]", "—");
     setText("[data-history-low]", "—");
     setText("[data-history-high]", "—");
     setText("[data-history-samples]", "0");

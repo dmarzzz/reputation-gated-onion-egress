@@ -312,7 +312,6 @@ function updateFreshness() {
   const status = snapshotFreshness(currentSnapshot, currentView);
   document.body.classList.toggle("is-stale", status.stale);
   document.body.classList.toggle("is-unavailable", currentView.refreshFailed);
-  setText("[data-view-age]", status.age.short);
   setText("[data-snapshot-state]", status.snapshotState);
   setText("[data-view-state]", status.viewState);
 }
@@ -333,8 +332,8 @@ function showUnavailable() {
   document.body.classList.remove("is-stale");
   document.body.classList.add("is-unavailable");
   setText("[data-view-state]", "Public view unavailable");
-  setText("[data-view-age]", "Unavailable");
   setText("[data-snapshot-state]", "Unavailable");
+  setText("[data-node-count]", "—");
   setText("[data-view-time]", "Unavailable");
   setText("[data-network]", "Unavailable");
   renderOnchainLedger(document, {});
@@ -410,7 +409,6 @@ async function renderSnapshot(snapshot, { bundled = false } = {}) {
   updateFreshness();
   scheduleAgeRefresh();
   setText("[data-node-count]", String(count));
-  setText("[data-node-hours]", snapshot.growth?.announcedNodeHours == null ? "n/a" : String(snapshot.growth.announcedNodeHours));
   setText("[data-view-time]", observationLabel(snapshot.observedAt));
   setText("[data-network]", snapshot.network);
   setText("[data-snapshot-cadence]", `${cadence} min`);

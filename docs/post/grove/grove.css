@@ -61,7 +61,7 @@
   align-items: center;
   justify-content: space-between;
   margin: 0 auto;
-  padding: 1.5rem 0 7rem;
+  padding: 1.5rem 0 2.5rem;
 }
 
 .network-copy {
@@ -348,36 +348,19 @@
   text-align: right;
 }
 
-.network-data {
-  position: absolute;
-  z-index: 8;
-  right: max(1.5rem, calc((100% - var(--page)) / 2));
-  bottom: 1.4rem;
-  left: max(1.5rem, calc((100% - var(--page)) / 2));
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  margin: 0;
-  background: rgba(7, 14, 10, 0.78);
-  border: 1px solid var(--line);
-  backdrop-filter: blur(14px);
+.provenance-panel .provenance-count dd {
+  color: var(--pulse);
+  font-family: var(--serif);
+  font-size: 1.35rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
-.network-data div {
-  min-width: 0;
-  padding: 0.85rem 1rem;
-}
-
-.network-data div + div {
-  border-left: 1px solid var(--line);
-}
-
-.network-data dt,
 .history-summary dt {
   color: var(--muted);
   font-size: 0.75rem;
 }
 
-.network-data dd,
 .history-summary dd {
   margin: 0.12rem 0 0;
   color: var(--lichen);
@@ -666,16 +649,6 @@
     width: 100%;
   }
 
-  .network-data {
-    position: relative;
-    right: auto;
-    bottom: auto;
-    left: auto;
-    width: var(--page);
-    grid-template-columns: repeat(3, 1fr);
-    margin: 0 auto 1rem;
-  }
-
   .history-panel {
     grid-template-columns: 1fr;
   }
@@ -711,14 +684,6 @@
 
   .provenance-panel dl div {
     grid-template-columns: 0.9fr 1.1fr;
-  }
-
-  .network-data div {
-    padding: 0.72rem 0.75rem;
-  }
-
-  .network-data dd {
-    font-size: 1.35rem;
   }
 
   .history-chart svg {
