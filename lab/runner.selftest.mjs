@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { once } from "node:events";
-import { createEventSanitizer, createLabRunner, extractAnswer } from "./runner.mjs";
+import { createEventSanitizer, createLabRunner, extractAnswer, labClientOptions } from "./runner.mjs";
 
 let checks = 0;
 function ok(condition, message) {
@@ -20,6 +20,10 @@ const node = sanitizer({ phase: "dial", status: "done", onion: "abcdefghijklmnop
 ok(node.node === "node-1" && !JSON.stringify(node).includes("onion"), "node identities leave the runner only as ephemeral aliases");
 ok(sanitizer({ phase: "unknown", status: "done", secret: "nope" }) === null, "unknown client events fail closed");
 ok(extractAnswer("<main><h1>Example Domain</h1></main>") === "Example Domain", "the fixed response is reduced to its simple answer");
+ok(
+  labClientOptions({ SHADE_TREE_SECRET: "secret", SHADE_TREE_LIMIT: "8", SHADE_TREE_SLOT_STATE_DIR: "/durable/rln" }).slotStateDir === "/durable/rln",
+  "the production client receives its durable RLN slot-state directory",
+);
 
 let release;
 const held = new Promise((resolve) => { release = resolve; });

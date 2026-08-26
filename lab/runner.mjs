@@ -120,6 +120,18 @@ export function extractAnswer(body) {
   return match ? match[1].trim() : "Response received";
 }
 
+export function labClientOptions(env = process.env) {
+  return {
+    secret: env.SHADE_TREE_SECRET,
+    limit: Number(env.SHADE_TREE_LIMIT || 8),
+    leafSource: "invited",
+    maxAnon: true,
+    fetchTimeoutMs: 100_000,
+    fetchMaxBodyBytes: 32_768,
+    slotStateDir: env.SHADE_TREE_SLOT_STATE_DIR,
+  };
+}
+
 function writeEvent(response, event, data) {
   response.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 }
@@ -144,14 +156,7 @@ async function readEmptyObject(request) {
 export function createLabRunner({
   token = process.env.SHADE_TREE_LAB_RUNNER_TOKEN,
   cooldownMs = Number(process.env.SHADE_TREE_LAB_COOLDOWN_MS || DEFAULT_COOLDOWN_MS),
-  clientFactory = () => new ShadeTreeClient({
-    secret: process.env.SHADE_TREE_SECRET,
-    limit: Number(process.env.SHADE_TREE_LIMIT || 8),
-    leafSource: "invited",
-    maxAnon: true,
-    fetchTimeoutMs: 100_000,
-    fetchMaxBodyBytes: 32_768,
-  }),
+  clientFactory = () => new ShadeTreeClient(labClientOptions()),
   now = Date.now,
 } = {}) {
   if (!token || token.length < 32) throw new Error("SHADE_TREE_LAB_RUNNER_TOKEN must be at least 32 characters");
