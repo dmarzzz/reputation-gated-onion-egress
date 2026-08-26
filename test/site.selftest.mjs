@@ -65,6 +65,7 @@ const labCss = read("lab/lab.css");
 const labScript = read("lab/lab.js");
 const groveCss = read("grove/grove.css");
 const groveLoader = read("grove/network.js");
+const groveFilePreview = read("grove/file-preview.js");
 const groveScene = read("grove/scene.js");
 const groveFreshness = read("grove/freshness.js");
 const groveHistory = read("grove/history.js");
@@ -97,6 +98,7 @@ check("Protocol Lab keeps sensitive fields out of its public card", /IP, target,
 check("Protocol Lab route is responsive and reduced-motion safe", /@media \(max-width: 650px\)[\s\S]*?\.route-stages\s*\{[\s\S]*?grid-template-columns:\s*1fr/.test(labCss) && /@media \(prefers-reduced-motion: reduce\)/.test(labCss) && /matchMedia\("\(prefers-reduced-motion: reduce\)"\)/.test(labScript));
 check("Protocol Lab has replay, local-run, and post-success share actions", /Walk this route/.test(labPage) && /data-share>Share this route/.test(labPage) && /data-copy-link>Copy route link/.test(labPage) && /href="\.\.\/agent\/index\.html">Run locally/.test(labPage) && /result\.hidden = true/.test(labScript) && /result\.hidden = false/.test(labScript));
 check("Protocol Lab opens as a styled app from direct-file and clean hosted URLs", /href="\.\/lab\/index\.html">Lab/.test(landing) && /href="\.\.\/site\.css"/.test(labPage) && /href="\.\.\/lab\/lab\.css"/.test(labPage) && /src="\.\.\/lab\/lab\.js"/.test(labPage) && /href="\.\.\/index\.html"/.test(labPage) && !/(?:href|src)="\/(?:site|favicon|lab|agent|grove|research)/.test(labPage) && /new URL\(canonicalLabUrl\)/.test(labScript) && /history\.replaceState\(null, "", `\?scenario=/.test(labScript));
+check("Grove opens as a styled, honest preview from direct-file and a live app when hosted", /href="\.\.\/site\.css"/.test(grovePage) && /href="\.\/grove\.css"/.test(grovePage) && /src="\.\/network\.js"/.test(grovePage) && /src="\.\/file-preview\.js"/.test(grovePage) && /href="\.\.\/index\.html"/.test(grovePage) && /href="\.\.\/research\/index\.html"/.test(grovePage) && !/(?:href|src)="\/(?:site|favicon|fig|grove|research)/.test(grovePage) && /window\.location\.protocol === "file:"/.test(groveFilePreview) && /Local preview · open the hosted Grove for live stats/.test(groveFilePreview) && /data-node-count\]", "—"/.test(groveFilePreview));
 check("Protocol Lab has a dedicated static social image", /og:image" content="https:\/\/shade-tree-node\.vercel\.app\/fig\/shade-tree-lab-og\.png"/.test(labPage));
 check("landing has one H1 and one decorative canvas", (landing.match(/<h1\b/g) || []).length === 1 && (landing.match(/<canvas[^>]+aria-hidden="true"/g) || []).length === 1);
 check("Grove has one H1, one focused detail section, and one live status", (grovePage.match(/<h1\b/g) || []).length === 1 && (grovePage.match(/<main\b/g) || []).length === 1 && (grovePage.match(/<section\b/g) || []).length === 1 && /role="status" aria-live="polite"/.test(grovePage));
@@ -188,6 +190,7 @@ for (const asset of [
   "grove/index.html",
   "grove/grove.css",
   "grove/network.js",
+  "grove/file-preview.js",
   "grove/scene.js",
   "grove/freshness.js",
   "grove/history.js",
@@ -283,7 +286,7 @@ check("tampering with the bundled count breaks its signature", !verifyPublicGrov
 const fallbackText = JSON.stringify(fallbackSnapshot);
 check("bundled snapshot contains no identity, place, activity, or pulse field", !/\.onion|pubkey|operator|wallet|address|region|country|coordinates?|asn|destination|tunnels?|bytes|requests?|queries|pulse/i.test(fallbackText));
 
-for (const script of ["site.js", "grove.js", "grove/network.js", "grove/scene.js", "grove/freshness.js", "grove/history.js", "grove/visual-model.js", "grove/onchain.js", "api/grove.mjs", "api/_grove-contract.mjs", "api/grove-v2.mjs", "api/_grove-v2-contract.mjs", "api/_grove-onchain-contract.mjs"]) {
+for (const script of ["site.js", "grove.js", "grove/network.js", "grove/file-preview.js", "grove/scene.js", "grove/freshness.js", "grove/history.js", "grove/visual-model.js", "grove/onchain.js", "api/grove.mjs", "api/_grove-contract.mjs", "api/grove-v2.mjs", "api/_grove-v2-contract.mjs", "api/_grove-onchain-contract.mjs"]) {
   const result = spawnSync(process.execPath, ["--check", join(SITE, script)], { encoding: "utf8" });
   check(`${script} parses as JavaScript`, result.status === 0);
 }

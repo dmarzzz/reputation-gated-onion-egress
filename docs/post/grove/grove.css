@@ -6,7 +6,7 @@
   background:
     radial-gradient(circle at 50% 16%, rgba(101, 125, 95, 0.14), transparent 31rem),
     linear-gradient(180deg, rgba(7, 12, 9, 0.86), rgba(7, 12, 9, 0.98)),
-    url("/fig/shade-tree-banner.webp") center / cover no-repeat;
+    url("../fig/shade-tree-banner.webp") center / cover no-repeat;
 }
 
 .network-hero {
@@ -761,7 +761,7 @@
 }
 
 @media (max-width: 360px) {
-  .network-page .nav-links a[href="/research/"] {
+  .network-page .nav-links a[href="../research/index.html"] {
     display: none;
   }
 
