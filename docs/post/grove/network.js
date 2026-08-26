@@ -499,8 +499,6 @@ async function load() {
   }
 }
 
-load();
-
 function onPageHide() {
   window.clearTimeout(pollTimer);
   window.clearTimeout(ageTimer);
@@ -518,6 +516,9 @@ function onVisibilityChange() {
   if (Date.now() - lastLoadFinishedAt >= POLL_INTERVAL_MS) load();
 }
 
-window.addEventListener("pagehide", onPageHide);
-window.addEventListener("pageshow", onPageShow);
-document.addEventListener("visibilitychange", onVisibilityChange);
+if (window.location.protocol !== "file:") {
+  load();
+  window.addEventListener("pagehide", onPageHide);
+  window.addEventListener("pageshow", onPageShow);
+  document.addEventListener("visibilitychange", onVisibilityChange);
+}
