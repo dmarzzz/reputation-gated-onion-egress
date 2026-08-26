@@ -112,6 +112,7 @@ body.network-page::before {
   gap: 0;
   justify-items: center;
   margin: 0;
+  transform: translateY(clamp(1.5rem, 3vh, 2.75rem));
 }
 
 .network-stage {
@@ -335,7 +336,7 @@ body.network-page::before {
     min-height: 0;
     grid-template-columns: 1fr;
     gap: 0.75rem;
-    padding: 2.2rem 0 1rem;
+    padding: 1.25rem 0 0.75rem;
   }
 
   .network-copy {
@@ -343,22 +344,28 @@ body.network-page::before {
   }
 
   .network-copy h1 {
-    font-size: clamp(3.6rem, 16vw, 5.5rem);
+    max-width: none;
+    font-size: clamp(2.75rem, 8vw, 4rem);
+    letter-spacing: -0.055em;
+    line-height: 0.9;
   }
 
   .network-copy p {
-    max-width: 31rem;
-    margin-top: 1rem;
+    max-width: 32rem;
+    margin-top: 0.8rem;
+    font-size: 0.8rem;
+    line-height: 1.5;
   }
 
   .network-stage {
-    width: min(100%, 34rem);
-    margin: -0.5rem auto 0;
+    width: min(76vw, 29rem);
+    margin: -0.25rem auto 0;
   }
 
   .network-visual {
     width: 100%;
     grid-row: auto;
+    transform: none;
   }
 
   .provenance-panel {
@@ -370,20 +377,30 @@ body.network-page::before {
 
 @media (max-width: 480px) {
   .network-copy h1 {
-    font-size: clamp(3.35rem, 17vw, 4.5rem);
+    font-size: clamp(2.25rem, 10.5vw, 2.75rem);
   }
 
   .network-copy p {
-    font-size: 0.86rem;
+    font-size: 0.78rem;
   }
 
   .network-stage {
-    width: calc(100% + 1rem);
-    margin-left: -0.5rem;
+    width: min(78vw, 20.5rem);
+    margin-right: auto;
+    margin-left: auto;
+  }
+
+  .provenance-panel {
+    padding: 0.75rem;
+  }
+
+  .provenance-head {
+    padding-bottom: 0.6rem;
   }
 
   .provenance-panel dl div {
     grid-template-columns: 0.9fr 1.1fr;
+    padding: 0.56rem 0;
   }
 
 }
