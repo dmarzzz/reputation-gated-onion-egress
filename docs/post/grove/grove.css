@@ -2,7 +2,8 @@
   background: var(--understory);
 }
 
-.network-page::before {
+body.network-page::before {
+  background: none;
   content: none;
 }
 
