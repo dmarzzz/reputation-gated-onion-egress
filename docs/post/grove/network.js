@@ -5,6 +5,7 @@ import { grovePatchCount } from "./visual-model.js";
 import { onchainSigningPayload, validPublicOnchain } from "./onchain.js";
 
 const LIVE_URL = "/api/v2/data/grove/sepolia/head";
+const COUNT_FALLBACK_URL = "/api/v1/data/grove/sepolia/head";
 const FALLBACK_URL = "/grove/network.fallback.json";
 const NETWORK = "sepolia";
 const FETCH_TIMEOUT_MS = 9_000;
@@ -225,6 +226,14 @@ async function fetchSnapshot(url) {
   }
 }
 
+async function fetchLiveSnapshot() {
+  try {
+    return await fetchSnapshot(LIVE_URL);
+  } catch {
+    return fetchSnapshot(COUNT_FALLBACK_URL);
+  }
+}
+
 function hashSeed(text) {
   let hash = 2166136261;
   for (const char of String(text)) {
@@ -373,7 +382,7 @@ async function load() {
   stage.classList.add("is-querying");
   sceneController?.beginQuery();
   try {
-    const snapshot = await fetchSnapshot(LIVE_URL);
+    const snapshot = await fetchLiveSnapshot();
     const freshCensus = lastLiveObservedAt !== null && lastLiveObservedAt !== snapshot.observedAt;
     await renderSnapshot(snapshot);
     sceneController?.finishQuery(snapshot, { freshCensus });

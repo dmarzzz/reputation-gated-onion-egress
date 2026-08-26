@@ -1,20 +1,24 @@
-# Sepolia deployment record (pre-v4, retired)
+# Sepolia deployment records
 
-The earlier research deployment on Ethereum Sepolia (chainId 11155111). Machine-readable artifacts
-alongside: [`contracts.json`](contracts.json) (contract addresses + deploy tx/block),
-[`bootnode.json`](bootnode.json) (fleet discovery record), [`directory.json`](directory.json)
-(signed gateway fleet). This README is the human-readable historical index.
+This directory contains two deliberately separate generations:
 
-> **Retired for current clients.** The deployed nodes predate the Shade Tree envelope-v4
-> boundary and are incompatible with the current client. The machine-readable bootnode and
-> contract records are marked `retired`; selecting `SHADE_TREE_NETWORK=sepolia` therefore
-> supplies no runnable defaults and the client fails closed. Use a local v4 fleet or explicit
-> values from a v4 operator. The public Grove observes this old fleet read-only; its aggregate
-> is not a v4 availability or compatibility claim.
+- [`deployment.json`](deployment.json) records the live disposable Protocol v4 research Grove
+  deployed on 2026-08-25: one Elder Tree and three Shade Tree nodes, invited-only, with explicitly
+  untrusted testnet proof artifacts. Its execution record is
+  [`docs/GO-LIVE-LOG-2026-08-25-v4.md`](../../docs/GO-LIVE-LOG-2026-08-25-v4.md).
+- [`contracts.json`](contracts.json), [`bootnode.json`](bootnode.json), the signed directory files,
+  and the integration reports below record the earlier pre-v4 Sepolia experiment. Those files remain
+  byte-stable historical evidence and are not current client presets.
 
-Unless a sentence says otherwise, “live” below records what was verified during the 2026-08-17
-experiment. It does not mean that the service is current or compatible with envelope v4. The
-release name `rln-v4-tiers` referred to an earlier contract/proof iteration, not envelope v4.
+> **No public access profile.** The public Grove observes only the signed aggregate count from the
+> current v4 research deployment. The repository does not publish that invited fleet's member
+> secret or membership input. Selecting `SHADE_TREE_NETWORK=sepolia` still supplies no runnable
+> defaults and fails closed; obtain a complete profile from its operator or run a local v4 fleet.
+
+Unless a sentence refers to `deployment.json` or the 2026-08-25 v4 log, “live” below records what
+was verified during the retired 2026-08-17 experiment. It does not mean that the older service is
+current or compatible with envelope v4. The release name `rln-v4-tiers` referred to an earlier
+contract/proof iteration, not envelope v4.
 
 ## Staking contracts
 
@@ -121,9 +125,11 @@ created by OpenTofu, egress-01/02 retrofitted via the Ansible role.
 
 ## Connect a current v4 client
 
-Do not use this deployment's onions, directories, contracts, registrar, or signer with a
-current checkout. The old commands are intentionally omitted: a signed historical directory
-can still be authentic while every node in it speaks an incompatible protocol.
+Do not use the legacy `bootnode.json`, signed directories, contracts, registrar, or signer with a
+current checkout. A signed historical directory can still be authentic while every node in it
+speaks an incompatible protocol. The current `deployment.json` Elder onion and signer are public
+deployment metadata, but they are not sufficient for invited access: a member also needs the exact
+tier, secret, and matching member-set input from the v4 operator.
 
 For a local v4 fleet, follow [`../../docs/QUICKSTART.md`](../../docs/QUICKSTART.md) Path B. For an
 operator-run v4 fleet, get a freshly issued bootnode onion and pinned directory signer from that

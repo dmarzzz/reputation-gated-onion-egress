@@ -7,8 +7,9 @@ per-topic docs; this page is the one-screen-per-topic version. Index: [`README.m
 
 > **v4 network status.** This checkout speaks envelope v4. There is no repo-maintained public
 > v4 network profile yet; obtain explicit discovery and contract values from a v4 operator or
-> run the local loop below. The checked-in Sepolia deployment is incompatible pre-v4 history,
-> observed read-only by the public Grove.
+> run the local loop below. The legacy Sepolia runtime records are incompatible pre-v4 history.
+> A separate `network/sepolia/deployment.json` records the invited-only v4 research Grove behind
+> the public aggregate map, but does not contain the membership inputs required to connect.
 
 ## How it works
 

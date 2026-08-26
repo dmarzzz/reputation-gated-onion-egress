@@ -5,10 +5,11 @@ you are trying to do. The [README](../README.md) is the short front door;
 [`OVERVIEW.md`](OVERVIEW.md) is the long one.
 A browsable HTML build of all of this: `node docs-site/build.mjs` ([`docs-site/`](../docs-site/README.md)).
 
-> **Network status:** the current implementation speaks envelope v4 only. The checked-in
-> Sepolia deployment is an incompatible pre-v4 historical record, not a client preset to run.
-> Connect with configuration supplied by a v4 operator or start a local fleet. The public Grove
-> observes the old fleet read-only; it does not advertise public v4 availability.
+> **Network status:** the current implementation speaks envelope v4 only. The legacy Sepolia
+> contracts, bootnode record, and signed directories remain incompatible pre-v4 history and are
+> not client presets. A separate [`network/sepolia/deployment.json`](../network/sepolia/deployment.json)
+> records the live disposable v4 research Grove observed by the public aggregate map. It is
+> invited-only, uses untrusted testnet artifacts, and still is not a public access profile.
 
 ## Start here
 
@@ -51,8 +52,8 @@ A browsable HTML build of all of this: `node docs-site/build.mjs` ([`docs-site/`
 | [`LIGHT-CLIENT.md`](LIGHT-CLIENT.md) | Light-client root reads and the Helios sync-committee anchor (`SHADE_TREE_HELIOS=1`), with live receipts |
 | [`../monitoring/README.md`](../monitoring/README.md) | Grafana dashboard + Prometheus alert rules on the real metric names |
 | [`../docker/README.md`](../docker/README.md) | Single image and the local compose fleet |
-| [`GO-LIVE.md`](GO-LIVE.md), [`GO-LIVE-LOG-2026-08-17.md`](GO-LIVE-LOG-2026-08-17.md) | The go-live runbook and the record of executing it |
-| [`../network/README.md`](../network/README.md), [`../network/sepolia/`](../network/sepolia/README.md) | Deployment-record schema and the historical pre-v4 Sepolia artifacts (`contracts.json`, `bootnode.json`, signed directory, integration reports) |
+| [`DEPLOYMENT-PLAN.md`](DEPLOYMENT-PLAN.md), [`GO-LIVE-LOG-2026-08-25-v4.md`](GO-LIVE-LOG-2026-08-25-v4.md) | The current v4 rollout boundary and the disposable research Grove deployment record |
+| [`../network/README.md`](../network/README.md), [`../network/sepolia/`](../network/sepolia/README.md) | Deployment-record schema, the current v4 research record (`deployment.json`), and historical pre-v4 Sepolia artifacts |
 
 ## Design and security
 

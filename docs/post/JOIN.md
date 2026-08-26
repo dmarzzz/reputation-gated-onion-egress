@@ -14,10 +14,10 @@ access uses the operator's member list. Staked or paid access uses operator-supp
 and RPC values. Your secret stays on your machine.
 
 Status: research preview, unaudited, with testnet ZK artifacts. The software can be exercised
-in a local or operator-configured v4 Grove, but there is no public v4 service here.
-Do not put sensitive traffic on it. The checked-in Sepolia record is the incompatible
-pre-v4 research deployment, not a current connection profile. The public Grove observes that
-old fleet read-only; its count does not advertise v4 Proxy availability.
+in a local or operator-configured v4 Grove, but there is no public access profile here.
+Do not put sensitive traffic on it. The legacy Sepolia contract and directory records are
+incompatible pre-v4 history. The public aggregate map observes a separate disposable v4 research
+Grove, but its count does not include the invited membership inputs needed by the Proxy.
 See the repo README "Scope" and [`../SHIP-PLAN.md`](../SHIP-PLAN.md).
 
 ## 1. Get a member secret

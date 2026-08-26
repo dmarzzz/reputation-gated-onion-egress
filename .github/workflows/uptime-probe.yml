@@ -10,14 +10,15 @@ name: uptime-probe
 #   SHADE_TREE_DIR_SIGNER       the pinned directory-signer pubkey (hex, no 0x)
 #   SHADE_TREE_NETWORK          ALTERNATIVE: a network/<name>/ record name (e.g. sepolia); the probe reads
 #                         the two values above from network/<name>/bootnode.json (lib/network-record.mjs)
-#   SHADE_TREE_PROBE_ACCEPT_PRE_V4_CAPS  optional, observation-only compatibility for an explicitly
-#                         identified pre-v4 research fleet; it does not affect clients or nodes
+#   SHADE_TREE_PROBE_ACCEPT_PRE_V4_CAPS  keep 0 for the current v4 Grove; 1 is observation-only
+#                         compatibility for an explicitly identified legacy fleet
 #   SHADE_TREE_GROVE_SIGNING_KEY  dedicated Ed25519 private key, stored only as an Actions secret
 # The onion and signer are not secret, so plain variables are the right home; the same names are
 # also read from SECRETS as a fallback. The Grove signing key is secret. The hosted probe never
 # prints the count and scrubs onions from error text. After a fresh, verified
 # probe, the workflow force-updates the generated network-state branch with versioned allowlisted
 # signed aggregate snapshots for the public Grove. No directory rows are written to that branch.
+# A final read-only job verifies the production page and both public signed heads.
 #
 # NO-OP GUARD: if none of the variables/secrets is set, the job writes a ::notice:: and exits
 # green without installing anything, so an unconfigured fork/repo never red-flags. Only a real
@@ -225,3 +226,38 @@ jobs:
             echo "unexpected network-state ref response: $ref_status" >&2
             exit 1
           fi
+
+  verify-public:
+    name: verify public Grove data plane
+    needs: publish
+    if: needs.publish.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+    steps:
+      - name: verify production page and signed heads
+        env:
+          GROVE_ORIGIN: https://shade-tree-node.vercel.app
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 12); do
+            page_status="$(curl -sS -o "$RUNNER_TEMP/grove-page.html" -w '%{http_code}' "$GROVE_ORIGIN/grove/")"
+            v1_status="$(curl -sS -o "$RUNNER_TEMP/grove-v1.json" -w '%{http_code}' "$GROVE_ORIGIN/api/v1/data/grove/sepolia/head")"
+            v2_status="$(curl -sS -o "$RUNNER_TEMP/grove-v2.json" -w '%{http_code}' "$GROVE_ORIGIN/api/v2/data/grove/sepolia/head")"
+            page_ok=false
+            v1_schema=""
+            v2_schema=""
+            if [ "$page_status" = "200" ] && grep -q 'id="grove-main"' "$RUNNER_TEMP/grove-page.html"; then page_ok=true; fi
+            if [ "$v1_status" = "200" ]; then v1_schema="$(jq -r '.schema // empty' "$RUNNER_TEMP/grove-v1.json")"; fi
+            if [ "$v2_status" = "200" ]; then v2_schema="$(jq -r '.schema // empty' "$RUNNER_TEMP/grove-v2.json")"; fi
+            if [ "$page_ok" = "true" ] && [ "$v1_schema" = "shade-tree-public-grove-v1" ] && [ "$v2_schema" = "shade-tree-public-grove-v2" ]; then
+              echo "public Grove page and signed v1/v2 heads are healthy"
+              echo "Public Grove page and signed v1/v2 heads: healthy" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "public data plane not ready (attempt $attempt/12; page=$page_status v1=$v1_status v2=$v2_status)"
+            sleep 5
+          done
+          echo "::error title=public Grove data plane unhealthy::The publisher succeeded, but the production Grove page or a signed Data API head did not become healthy within 60 seconds."
+          exit 1

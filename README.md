@@ -23,8 +23,11 @@ at a time.
 
 > [!WARNING]
 > Research preview. The code is unaudited and the included ZK artifacts are for
-> development. The checked-in Sepolia records describe the retired pre-v4
-> research fleet. Do not rely on this preview for real funds or sensitive use.
+> development. The legacy Sepolia contract and directory records are retired
+> pre-v4 history. [`network/sepolia/deployment.json`](network/sepolia/deployment.json)
+> separately records the live, disposable v4 research Grove behind the public
+> aggregate map; it is invited-only and is not a public access profile. Do not
+> rely on this preview for real funds or sensitive use.
 
 ## Implementation maturity
 

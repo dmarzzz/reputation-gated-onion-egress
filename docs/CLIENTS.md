@@ -3,10 +3,10 @@
 A proxy runs beside the agent. A node accepts the proof and provides egress. The Elder Tree serves the signed Canopy. The implementation and environment variables still use `client`, `gateway`, and `bootnode` in places. Those names remain compatible.
 
 > **v4 status.** The current client speaks envelope v4 only. Obtain a v4 gateway onion or a
-> signed directory and pinned signer from the fleet operator. The committed Sepolia record is
-> the incompatible pre-v4 research deployment and must not be used as the current client's
-> connection profile. The public Grove observes that old fleet read-only; it does not advertise
-> a public v4 endpoint.
+> signed directory and pinned signer from the fleet operator. The legacy Sepolia contract and
+> directory files are incompatible pre-v4 history and must not be used as the current client's
+> connection profile. The public aggregate map observes a separate disposable v4 research Grove,
+> but it does not publish the invited membership inputs required to connect.
 
 The node needs a **fresh RLN proof per tunnel**. That is what makes the nullifier,
 the per-epoch rate cap, and the slashing work, so *something* client-side must mint it. What

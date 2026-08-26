@@ -73,8 +73,11 @@ a missing or different selector leaves the last valid snapshot untouched.
 The browser pins the corresponding key from
 [`network/grove-signing-public.pem`](../network/grove-signing-public.pem) and
 refuses an unsigned, malformed, future-dated, or incorrectly signed payload.
-It accepts an older valid snapshot so the last verified count can remain visible,
-then labels that view stale as it ages.
+It prefers the v2 head, then falls back to the separately verified v1 count head
+when v2's stricter freshness gate is unavailable. It accepts an older valid v1
+snapshot so the last verified count can remain visible, then labels that view
+stale as it ages. The bundled signed reference is the final fallback, not the
+first response to a delayed v2 observation.
 
 The read-only observer passes the two versioned signed JSON envelopes to a separate minimal publisher;
 the publisher checks out no code and receives repository write permission only
@@ -133,8 +136,10 @@ gh workflow run uptime-probe.yml --repo <owner/repo> --ref <reviewed-ref>
 ```
 
 The run is complete only when both `fleet uptime probe (over Tor)` and
-`publish signed aggregate` pass. Verify the generated head and production
-consumer independently:
+`publish signed aggregate` pass. The dependent `verify public Grove data plane`
+job then checks the production Grove page and both signed heads, closing the gap
+between a successful publisher and a failed public consumer. Verify the generated
+head and production consumer independently:
 
 ```bash
 gh api 'repos/<owner/repo>/contents/grove-v2.json?ref=network-state'

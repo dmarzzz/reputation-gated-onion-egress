@@ -69,8 +69,10 @@ unset SHADE_TREE_SECRET
 The `unset` after a Proxy or heartbeat runs when that long-running process stops. The hidden reads
 keep bearer and operator keys out of argv and shell history.
 
-The checked-in `sepolia` record is retired pre-v4 history and cannot be used in
-place of `<current-v4-network>`.
+The legacy `sepolia` runtime records (`bootnode.json`, `contracts.json`, and signed directories)
+are retired pre-v4 history and cannot be used in place of `<current-v4-network>`. The separate
+`network/sepolia/deployment.json` is current v4 research-deployment metadata, but deliberately is
+not a runnable public access preset.
 
 ## `contracts.json` schema
 

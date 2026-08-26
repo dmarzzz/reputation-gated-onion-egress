@@ -93,6 +93,61 @@ environment file, and reference it with `EnvironmentFile=` from
 shade-tree-heartbeat`). Do not put the key in the unit command or shell history; it is not a
 `bootstrap.sh` tunable.
 
+### Add the next node on a second provider / ASN
+
+The current disposable v4 research Grove spans three regions but one provider and ASN. Before
+adding another long-lived node, place it on a different provider network so one DigitalOcean or
+AS14061 incident cannot remove the whole Grove. This changes failure independence; it does not by
+itself make the anonymity set larger or the untrusted testnet artifacts production-safe.
+
+Use a fresh Ubuntu 24.04 host with a dedicated public address, root or passwordless `sudo`, outbound
+traffic allowed, and **only TCP 22 from the reviewed operator CIDR inbound**. Do not expose the
+gateway, heartbeat, or metrics ports. Record the provider account owner, region, instance size,
+admin CIDR, abuse contact, teardown method, and identity-backup location before bootstrap.
+
+| Target | Image / access | Provider firewall | Operator note |
+|---|---|---|---|
+| Hetzner Cloud | Ubuntu 24.04, SSH key, non-root sudo user or root | inbound 22/tcp from the operator `/32`; outbound allow | Record the project owner and server rescue path. |
+| OVHcloud VPS | Ubuntu 24.04, SSH key | provider firewall plus host UFW with the same SSH-only rule | Record the control-panel owner and reinstall/recovery path. |
+| Bare metal / colocated | Ubuntu 24.04, remote-console access, dedicated egress address | upstream ACL plus host UFW; no management subnet reachable from egress | Keep BMC, storage, validator, wallet, and authenticated RPC networks physically or logically separate. |
+
+Before announcing, verify the address is not in the Elder provider's ASN. Run this from the
+operator workstation and save the returned organization string in the deployment receipt:
+
+```bash
+curl -fsS "https://ipinfo.io/<new-node-public-ip>/org"
+```
+
+Then use gateway-only mode against the existing v4 Elder. Fetch the bootstrap script from the same
+reviewed immutable ref that `SHADE_TREE_REF` names; do not mix `main` at download time with an older
+service checkout:
+
+```bash
+export SHADE_TREE_REF=<reviewed-tag-or-commit>
+curl -fsSL "https://raw.githubusercontent.com/dmarzzz/shade-tree-node/$SHADE_TREE_REF/bootnode/deploy/bootstrap.sh" \
+  -o /tmp/shade-tree-bootstrap.sh
+sudo env \
+  SHADE_TREE_REF="$SHADE_TREE_REF" \
+  SHADE_TREE_BOOTNODE_ONION=<v4-elder.onion> \
+  SHADE_TREE_BOOTNODE_SIGNER=<pinned-canopy-signer> \
+  SHADE_TREE_MEMBERS_FILE=/root/operator-members.json \
+  SHADE_TREE_GATEWAY_REGION=<na|sa|eu|af|as|oc|aq|unknown> \
+  bash /tmp/shade-tree-bootstrap.sh
+```
+
+`SHADE_TREE_BOOTNODE_SIGNER` is printed into the client handoff; the heartbeat authenticates its own
+announcement and does not trust that value. If the Elder requires staked operator admission, fund
+and register a provider-specific operator key with `shade-tree register-gateway`, then load the
+heartbeat signing key from a root-only environment file as described above. Do not reuse a slash or
+operator hot key merely because two nodes share an owner.
+
+Finish by checking `shade-tree-heartbeat` reports `accepted`, the signed Canopy adds exactly the new
+Protocol v4 onion, the node's `/readyz` is healthy on loopback, all non-SSH clearnet ports remain
+closed, and a real invited CONNECT returns the new provider address. Give the provider abuse contact
+a concise description: the public IP is an access-gated HTTPS CONNECT egress; complaints identify
+the node address, not the private member behind an RLN proof. Preserve logs under the project's
+traffic-metadata limits and follow [INCIDENT.md](INCIDENT.md) rather than promising attribution.
+
 ### By hand
 
 If you did not use `bootstrap.sh` (bringing your own host, or a non-systemd setup):
@@ -655,9 +710,10 @@ SHADE_TREE_ADMIT=staked shade-tree gateway \
   --group-contract <v4-staked-set-address> --rpc-url <operator-rpc-url>
 ```
 
-Use a named network only when you maintain a current v4 record for it. The
-checked-in `sepolia` record is retired pre-v4 history and is intentionally not
-a gateway configuration preset.
+Use a named network only when you maintain a current v4 runtime record for it. The legacy
+`sepolia` contracts, bootnode, and signed directories are retired pre-v4 history and intentionally
+are not a gateway configuration preset. Its separate `deployment.json` is a current research
+receipt, not a complete runtime preset.
 
 - The named paths are the ONLY root sources and the ONLY slash routing targets; a configured but
   un-admitted contract is never read. Startup prints the policy, then the sources: `admits:

@@ -171,6 +171,14 @@ function main() {
     ok(/GROVE_SNAPSHOT_B64/.test(publishRun) && /git\/blobs/.test(publishRun) && /git\/trees/.test(publishRun), "publisher accepts only the encoded snapshot and uses the Git data API");
     ok(/path:\"grove\.json\"/.test(publishRun) && /parents:\[\]/.test(publishRun), "publisher creates a one-file parentless commit (no retained count history)");
     ok(!/npm|node scripts|checkout|git push/.test(publishRun), "publisher executes no repository code or dependency install");
+
+    const publicVerify = doc.jobs?.["verify-public"];
+    const publicRun = (publicVerify?.steps || []).map((s) => s.run || "").join("\n");
+    ok(publicVerify?.needs === "publish" && publicVerify?.permissions?.contents === "read", "public data-plane check runs after publish with read-only permissions");
+    ok(/shade-tree-node\.vercel\.app/.test(publicRun) && /\/grove\//.test(publicRun), "public data-plane check reaches the production Grove page");
+    ok(/api\/v1\/data\/grove\/sepolia\/head/.test(publicRun) && /api\/v2\/data\/grove\/sepolia\/head/.test(publicRun), "public data-plane check reaches both signed heads");
+    ok(/shade-tree-public-grove-v1/.test(publicRun) && /shade-tree-public-grove-v2/.test(publicRun), "public data-plane check validates both schema names");
+    ok(/for attempt in \$\(seq 1 12\)/.test(publicRun) && /sleep 5/.test(publicRun), "public data-plane check allows bounded propagation time");
   } else {
     // structural fallback
     ok(/^on:\n\s+schedule:\n\s+- cron: "\*\/(5|1[0-9]|[2-5][0-9]) \* \* \* \*"/m.test(wf), "on.schedule cron */N with N>=5 (structural)");
@@ -179,6 +187,7 @@ function main() {
     ok(/permissions:\n  contents: read/.test(wf) && /publish:[\s\S]*permissions:\n      contents: write/.test(wf), "read-only collector and isolated write publisher (structural)");
     ok(/persist-credentials: false/.test(wf) && !/actions\/(?:checkout|setup-node)@v\d/.test(wf), "collector drops credentials and actions are SHA-pinned (structural)");
     ok(/parents:\[\]/.test(wf) && /path:\"grove\.json\"/.test(wf), "publisher emits a one-file parentless commit (structural)");
+    ok(/verify-public:[\s\S]*needs: publish[\s\S]*shade-tree-node\.vercel\.app[\s\S]*api\/v1\/data\/grove[\s\S]*api\/v2\/data\/grove/.test(wf), "publisher is followed by a production data-plane check (structural)");
   }
 
   console.log(failures ? `\n${failures} FAILED` : "\nall uptime-scheduler checks passed");

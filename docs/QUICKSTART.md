@@ -10,10 +10,11 @@ configuration from an operator, run a local loop to understand the pieces, or ru
 node or Grove on a host.
 
 > **Current network status.** This checkout speaks envelope v4 only. The committed
-> [`network/sepolia/`](../network/sepolia/README.md) record describes the earlier, incompatible
-> pre-v4 research deployment; it is not a runnable default for this Proxy, payments, or
-> staking. The public Grove observes that old fleet read-only. Its count is a historical-network
-> reachability signal, not evidence that a public v4 Grove is available.
+> [`network/sepolia/`](../network/sepolia/README.md) legacy contract and directory files describe
+> the earlier incompatible pre-v4 deployment; they are not runnable defaults for this Proxy,
+> payments, or staking. The directory's separate `deployment.json` records the disposable v4
+> research Grove observed by the public aggregate map. That fleet is invited-only and does not
+> provide a public connection profile.
 
 Everything is one CLI: `shade-tree <command> [--flags]`. Install it:
 

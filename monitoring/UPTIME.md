@@ -123,11 +123,10 @@ Hosted Tor bootstrap is occasionally sensitive to a runner's first guard path. T
 makes two bounded attempts with separate data directories before failing the observation; it
 never probes or publishes from a partial bootstrap.
 
-The recorded Sepolia research fleet predates the v4 domain reset. Its hosted observer also sets
-the repository variable `SHADE_TREE_PROBE_ACCEPT_PRE_V4_CAPS=1`. This is deliberately not derived
-from `SHADE_TREE_NETWORK`: a different fleet must never inherit legacy verification accidentally.
-The option only authenticates old signed capability documents for the census; v4 clients and
-nodes do not read it.
+The hosted Sepolia observer targets the current Protocol v4 research Grove and keeps
+`SHADE_TREE_PROBE_ACCEPT_PRE_V4_CAPS=0`. Set that compatibility switch to `1` only for a deliberately
+isolated observer of a named legacy fleet; it is never inferred from `SHADE_TREE_NETWORK` and must
+not be enabled for the current Grove.
 
 The public Grove also requires `SHADE_TREE_NETWORK=sepolia` and the
 `SHADE_TREE_GROVE_SIGNING_KEY` Actions **secret**. Other network selectors can
@@ -137,6 +136,10 @@ versioned Sepolia Data API. The key's public half is pinned in
 allowlisted aggregate; a separate minimal publisher job receives temporary
 `contents: write`, checks out no code, and force-updates a one-file, parentless
 `network-state` commit. See [`specs/data-api.md`](../specs/data-api.md).
+
+After the publisher succeeds, a separate read-only job checks the production `/grove/` page and
+both signed API heads. This makes a green scheduled run evidence that the public consumer caught
+up too, rather than evidence only that the Tor observer and Git publisher worked.
 
 ### cron
 

@@ -11,10 +11,10 @@ The node takes no inbound clearnet service port. Its application connection come
 local Tor service rather than carrying the Proxy's source IP. The node still sees the target,
 timing, lifetime, and traffic volume. You supply the destination-facing public IP.
 
-Status: research preview, unaudited, with testnet ZK artifacts. The software can be exercised
-in a local or operator-configured v4 Grove, but this repository does not advertise a public
-v4 service. The checked-in Sepolia records describe the incompatible pre-v4 research fleet.
-Do not put sensitive traffic on it. See the repo README "Boundaries" and
+Status: research preview, unaudited, with testnet ZK artifacts. A disposable three-node v4
+research Grove is live for aggregate observation, but this repository does not publish its
+invited membership profile as a public service. The older Sepolia contract and directory files
+remain incompatible pre-v4 history. Do not put sensitive traffic on it. See the repo README "Boundaries" and
 [`../SHIP-PLAN.md`](../SHIP-PLAN.md).
 
 ## Prerequisites
@@ -27,9 +27,10 @@ Do not put sensitive traffic on it. See the repo README "Boundaries" and
 
 ## One command on a droplet
 
-> **Blocked today.** The node now rejects non-public destination addresses after DNS
-> resolution, but the development ZK setup and the current
-> [deployment gates](../DEPLOYMENT-PLAN.md) still block public rollout.
+> **Testnet research only.** The node rejects non-public destination addresses after DNS
+> resolution, but the untrusted development ZK setup still blocks production rollout. The
+> current disposable v4 fleet exists under the explicit testnet decision recorded in the
+> [deployment plan](../DEPLOYMENT-PLAN.md).
 
 After those gates clear, the intended target is a fresh Ubuntu 24.04 host:
 

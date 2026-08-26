@@ -1,9 +1,10 @@
 # On-chain deploy runbook: persistent `GatewayRegistry` + `StakedReputationSet` (+ `PaidAccessSet`, §9)
 
 Task: **T-DEPLOY-7** — a persistent on-chain deployment of the stake contracts, wired to
-an operator's v4 fleet (Sepolia or a chosen L2). The checked-in Sepolia record is the
-retired pre-v4 deployment; create a new current record or use explicit v4 values rather
-than updating it in place.
+an operator's v4 fleet (Sepolia or a chosen L2). The checked-in Sepolia `contracts.json` is the
+retired pre-v4 deployment; create a new current contract/runtime record or use explicit v4 values
+rather than updating that historical file in place. The adjacent `deployment.json` records the
+current invited-only v4 research fleet, which has no on-chain admission contracts.
 
 Script: [`contracts/script/DeployRegistry.s.sol`](../contracts/script/DeployRegistry.s.sol)
 (`DeployRegistry`). It deploys `GatewayRegistry` and, unless disabled, `StakedReputationSet`
@@ -200,7 +201,8 @@ shade-tree bootnode --admission stake \
   --gateway-registry <v4-gateway-registry-address> --rpc-url <operator-rpc-url>
 ```
 
-Do not reuse `network/sepolia/` for this purpose: it is the retired pre-v4 deployment record.
+Do not overwrite `network/sepolia/contracts.json` for this purpose: it is the retired pre-v4
+contract record. Use a new named runtime record so the current research receipt remains distinct.
 
 The bootnode/gateway/lib otherwise find the contracts through env vars (see `docs/CONFIG.md`,
 `docs/OPERATOR.md`). After a live deploy, wire the deployed `GatewayRegistry` address in:
