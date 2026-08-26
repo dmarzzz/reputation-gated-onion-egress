@@ -16,16 +16,6 @@ if (window.location.protocol === "file:") {
     setText("[data-view-time]", "Not connected");
     setText("[data-snapshot-cadence]", "15 min");
     setText("[data-node-count]", "—");
-    setText("[data-history-low]", "—");
-    setText("[data-history-high]", "—");
-    setText("[data-history-samples]", "0");
-    setText("[data-history-coverage]", "0%");
-
-    const chart = document.querySelector("[data-history-chart]");
-    chart?.setAttribute(
-      "aria-label",
-      "Local file preview. Open the hosted Grove for live signed count history.",
-    );
   };
 
   if (document.readyState === "loading") {

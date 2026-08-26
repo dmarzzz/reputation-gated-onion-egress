@@ -23,6 +23,7 @@
 <body class="network-page is-checking">
   <a class="skip-link" href="#grove-main">Skip to Grove details</a>
 
+  <main id="grove-main">
   <header class="network-hero" aria-labelledby="grove-title">
     <nav class="site-nav" aria-label="Primary navigation">
       <a class="wordmark" href="../index.html" aria-label="Shade Tree Grove home">
@@ -73,58 +74,6 @@
       </aside>
     </div>
   </header>
-
-  <main id="grove-main" class="grove-main">
-    <section class="history-panel" aria-labelledby="history-title">
-      <div class="section-copy">
-        <h2 id="history-title">24 hours of shade</h2>
-        <p>Signed aggregate counts only. Coverage and gaps stay visible.</p>
-      </div>
-      <div class="history-chart" data-history-chart role="img" aria-label="No signed count history loaded">
-        <svg viewBox="0 0 960 260" preserveAspectRatio="none" aria-hidden="true">
-          <defs>
-            <linearGradient id="history-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stop-color="#e2be67" stop-opacity="0.28"></stop>
-              <stop offset="1" stop-color="#e2be67" stop-opacity="0"></stop>
-            </linearGradient>
-          </defs>
-          <g class="chart-grid">
-            <path d="M0 40H960M0 130H960M0 220H960"></path>
-          </g>
-          <path class="history-area" data-history-area d=""></path>
-          <path class="history-line" data-history-line d=""></path>
-          <g data-history-points></g>
-        </svg>
-        <div class="chart-axis" aria-hidden="true"><span>24h ago</span><span>Now</span></div>
-      </div>
-      <dl class="history-summary">
-        <div><dt>Low</dt><dd data-history-low>…</dd></div>
-        <div><dt>High</dt><dd data-history-high>…</dd></div>
-        <div><dt>Samples</dt><dd data-history-samples>…</dd></div>
-        <div><dt>Coverage</dt><dd data-history-coverage>…</dd></div>
-      </dl>
-      <div class="relay-ledger" data-relay-row hidden>
-        <div>
-          <a href="/api/v2/openapi.json#tag/Relay-telemetry" class="relay-label">Payload relayed, 24h</a>
-          <span data-relay-coverage></span>
-        </div>
-        <strong data-relay-value></strong>
-      </div>
-      <div class="onchain-ledger" data-onchain-ledger hidden>
-        <div class="onchain-head">
-          <div>
-            <a href="/api/v2/openapi.json#tag/Onchain-activity" class="relay-label">Onchain activity</a>
-            <span data-onchain-provenance></span>
-          </div>
-          <strong>V4 · finalized</strong>
-        </div>
-        <dl>
-          <div><dt>Membership</dt><dd data-onchain-membership></dd></div>
-          <div><dt>Settlements</dt><dd data-onchain-settlements></dd></div>
-          <div><dt>Enforcement</dt><dd data-onchain-enforcement></dd></div>
-        </dl>
-      </div>
-    </section>
   </main>
 
   <footer class="site-footer">
