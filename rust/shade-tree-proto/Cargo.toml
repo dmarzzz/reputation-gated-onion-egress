@@ -20,7 +20,7 @@ sha2 = "0.11"
 # EIP-191 `personal_sign` recovery for gateway operator authorization.  The
 # implementation hashes the prefixed message with the existing `sha3` Keccak256
 # and uses k256 only for recoverable secp256k1 verification.
-k256 = { version = "0.13", features = ["ecdsa"] }
+k256 = { version = "0.14", features = ["ecdsa"] }
 # NOTE: canonical_*_bytes are hand-built in fixed key order (see the encoders below),
 # NEVER via a serializer — serde is intentionally NOT a dependency of the canonical path.
 
