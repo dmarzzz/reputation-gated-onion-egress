@@ -38,6 +38,7 @@ ok(/SHADE_TREE_STAKE_MODE=onchain/.test(ELDER_STAKE) && /SHADE_TREE_GATEWAY_REGI
 
 console.log("host hardening and idempotence:");
 ok(/ufw default deny incoming/.test(TASKS) && /shade-tree-v4-admin/.test(TASKS) && /unexpected inbound allow rule/.test(TASKS), "firewall permits only the exact reviewed admin CIDR rule");
+ok(/shade_tree_manage_firewall:\s*true/.test(DEFAULTS) && /when: shade_tree_manage_firewall \| bool/.test(TASKS), "external IaC can own SSH policy without the application role rewriting UFW");
 ok(/SHADE_TREE_LOG_FORMAT: json/.test(TASKS) && /SHADE_TREE_BANNER: never/.test(TASKS), "bootstrap is pinned to JSON logs without terminal decoration");
 ok(/shade_tree_tunnel_max_payload_bytes:\s*41943040/.test(DEFAULTS) && /SHADE_TREE_TUNNEL_MAX_PAYLOAD_BYTES/.test(TASKS), "gateway deployment pins the provisional 40 MiB combined payload ceiling");
 ok(/SHADE_TREE_ZK_ARTIFACTS/.test(TASKS) && /shade_tree_artifact_specs \| join/.test(TASKS), "node and heartbeat receive the record-derived explicit artifact set");

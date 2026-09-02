@@ -68,9 +68,9 @@
   ansible.builtin.assert:
     that:
       - shade_tree_target_mode in ['elder', 'elder-and-node', 'node']
-      - shade_tree_admin_cidr | length > 0
-      - shade_tree_admin_cidr is match('^[0-9A-Fa-f:.]+/[0-9]{1,3}$')
-      - shade_tree_admin_cidr not in ['0.0.0.0/0', '::/0']
+      - (not shade_tree_manage_firewall | bool) or (shade_tree_admin_cidr | length > 0)
+      - (not shade_tree_manage_firewall | bool) or (shade_tree_admin_cidr is match('^[0-9A-Fa-f:.]+/[0-9]{1,3}$'))
+      - (not shade_tree_manage_firewall | bool) or (shade_tree_admin_cidr not in ['0.0.0.0/0', '::/0'])
       - shade_tree_ssh_port | int >= 1
       - shade_tree_ssh_port | int <= 65535
       - shade_tree_identity_source | length > 0
@@ -84,7 +84,7 @@
       - (shade_tree_deployment.elder.admission != 'stake') or (shade_tree_gateway_operator_key is match('^0x[0-9A-Fa-f]{64}$'))
       - (not shade_tree_runs_node | bool) or (not shade_tree_invited_admission | bool) or (shade_tree_members_file | length > 0)
     fail_msg: >-
-      Deployment is fail-closed. Supply an exact admin CIDR and restored identities; invited
+      Deployment is fail-closed. Supply restored identities and, when this role owns UFW, an exact admin CIDR; invited
       admission needs the operator member set; any on-chain path needs explicit authorization,
       RPC, slashing key, and contracts; a stake-gated Elder also needs its operator key.
   no_log: true
@@ -104,6 +104,7 @@
   delegate_to: localhost
   become: false
   changed_when: false
+  when: shade_tree_manage_firewall | bool
 
 - name: Check restored identity files on the controller
   ansible.builtin.stat:
@@ -209,6 +210,13 @@
     version: "{{ shade_tree_service_pin.commit }}"
     force: false
     update: true
+  environment:
+    # GitHub's Frankfurt edge intermittently fails Git's HTTP/2 ref discovery
+    # from the Amsterdam region. Keep this task on the deterministic HTTP/1.1
+    # transport; it is still HTTPS and the immutable commit is verified below.
+    GIT_CONFIG_COUNT: "1"
+    GIT_CONFIG_KEY_0: http.version
+    GIT_CONFIG_VALUE_0: HTTP/1.1
   register: shade_tree_checkout
 
 - name: Create the protected deployment state directory
@@ -264,7 +272,7 @@
 - name: Compute the non-secret reconciliation fingerprint
   ansible.builtin.set_fact:
     shade_tree_reconcile_fingerprint: >-
-      {{ ((shade_tree_deployment | to_json) ~ shade_tree_target_mode ~ shade_tree_admin_cidr
+      {{ ((shade_tree_deployment | to_json) ~ shade_tree_target_mode ~ (shade_tree_manage_firewall | string) ~ shade_tree_admin_cidr
           ~ (shade_tree_ssh_port | string) ~ shade_tree_gateway_region
           ~ (shade_tree_enable_pow | string)
           ~ (shade_tree_tunnel_max_payload_bytes | string)) | hash('sha256') }}
@@ -453,6 +461,7 @@
   args:
     executable: /bin/bash
   changed_when: false
+  when: shade_tree_manage_firewall | bool
 
 - name: Flush service restarts before verification
   ansible.builtin.meta: flush_handlers

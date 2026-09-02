@@ -3,6 +3,7 @@ shade_tree_deployment_record: ""
 shade_tree_controller_repo_root: "{{ playbook_dir }}/../../.."
 shade_tree_target_mode: node
 shade_tree_admin_cidr: ""
+shade_tree_manage_firewall: true
 shade_tree_ssh_port: 22
 shade_tree_identity_source: ""
 shade_tree_members_file: ""

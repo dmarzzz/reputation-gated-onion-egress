@@ -14,15 +14,15 @@
   "services": {
     "elder": {
       "repository": "https://github.com/dmarzzz/shade-tree-node.git",
-      "commit": "4b141797cd4d4fd961190c0f9774f6f181e81181"
+      "commit": "afce3f02905ff3d77ed46fb50e238ef12c9c0136"
     },
     "node": {
       "repository": "https://github.com/dmarzzz/shade-tree-node.git",
-      "commit": "4b141797cd4d4fd961190c0f9774f6f181e81181"
+      "commit": "afce3f02905ff3d77ed46fb50e238ef12c9c0136"
     },
     "heartbeat": {
       "repository": "https://github.com/dmarzzz/shade-tree-node.git",
-      "commit": "4b141797cd4d4fd961190c0f9774f6f181e81181"
+      "commit": "afce3f02905ff3d77ed46fb50e238ef12c9c0136"
     }
   },
   "elder": {
@@ -55,5 +55,5 @@
     "legacy": null
   },
   "created": "2026-08-25",
-  "note": "Disposable invited-only Protocol v4 research Grove: one dedicated Elder and three dedicated Shade Tree nodes. Current proof artifacts are explicitly untrusted testnet material."
+  "note": "Disposable invited-only Protocol v4 research Grove: one dedicated Elder and three dedicated Shade Tree nodes. Blue/green infrastructure is managed from agent-devops; application services are pinned to afce3f02905ff3d77ed46fb50e238ef12c9c0136. Current proof artifacts are explicitly untrusted testnet material."
 }
