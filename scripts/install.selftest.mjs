@@ -20,7 +20,7 @@
 //      replaced; a directory is refused; an install dir with spaces yields quoted, runnable hints.
 //   5. "latest" is resolved from the release page redirect (302 -> /tag/vX.Y.Z), also with an
 //      ambient http_proxy set (ignored for loopback) and via http://localhost; SHADE_TREE_VERSION
-//      accepts `0.4.0` and `v0.4.0`; an HTTP 500 and a DNS failure are reported as such, not as
+//      accepts `0.4.1` and `v0.4.1`; an HTTP 500 and a DNS failure are reported as such, not as
 //      a missing asset.
 //   6. Refusals: cleartext non-loopback base and loopback lookalikes (user-info, prefix hosts,
 //      bad ports) before any fetch; SHADE_TREE_TARGET outside the seven published triples
@@ -49,7 +49,7 @@ const ok = (cond, msg) => { if (cond) console.log(`  ok   ${msg}`); else { conso
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 // Mirrors .github/workflows/release.yml: 7 default targets, 6 of them also as `-live`.
-const VERSION = "0.4.0";
+const VERSION = "0.4.1";
 const LEGACY_VERSION = "0.3.0";
 const TARGETS = [
   "x86_64-unknown-linux-gnu",

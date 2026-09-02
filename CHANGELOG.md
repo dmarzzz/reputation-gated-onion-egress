@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.4.1 — Accepted-tunnel close handling
+
+**Official research preview.** This patch supersedes v0.4.0 for agents, but it
+still uses the unaudited, untrusted-testnet proving setup and is not a production
+anonymity or security boundary. Grove access remains invite-only.
+
+Install the matching checksummed Rust `-live` binary with:
+
+```sh
+curl -q -fsSL --proto '=https' --proto-redir '=https' \
+  https://raw.githubusercontent.com/dmarzzz/shade-tree-node/v0.4.1/scripts/install.sh \
+  | SHADE_TREE_VERSION=v0.4.1 sh
+```
+
+### Added
+
+- Added a hardened POSIX installer that detects the supported target, downloads
+  the pinned binary and checksum over HTTPS, verifies the digest and filename,
+  and installs without `sudo`.
+
+### Fixed
+
+- Fixed Rust CONNECT Proxy completion after proof acceptance: once the Proxy has
+  sent `200 Connection Established`, a later peer-close relay error is logged as
+  the end of that accepted tunnel instead of being treated as a pre-accept setup
+  failure. Errors before the 200 response remain fail-closed and nonzero.
+- Hardened the real-Hermes/embedded-Arti E2E so each successful agent request is
+  corroborated by a new gateway acceptance while bounded retries remain within
+  the eight-slot research epoch budget.
+
 ## 0.4.0 — Node-free Rust agent path
 
 **Official research preview.** These artifacts use the unaudited,

@@ -5488,7 +5488,7 @@ dependencies = [
 
 [[package]]
 name = "shade-tree-client"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "base64",
  "getrandom 0.3.4",
@@ -5506,7 +5506,7 @@ dependencies = [
 
 [[package]]
 name = "shade-tree-egress"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "arti-client",
  "serde",
@@ -5519,7 +5519,7 @@ dependencies = [
 
 [[package]]
 name = "shade-tree-proto"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "data-encoding",
  "ed25519-dalek 3.0.0",
@@ -5533,7 +5533,7 @@ dependencies = [
 
 [[package]]
 name = "shade-tree-rln"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "ark-bn254",
  "ark-circom",

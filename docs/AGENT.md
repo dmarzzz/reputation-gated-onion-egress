@@ -15,11 +15,11 @@ Node.js nor a system Tor daemon.
 
 Download the `-live` binary and matching `.sha256` for your platform from the
 [latest release](https://github.com/dmarzzz/shade-tree-node/releases/latest).
-This example installs the v0.4.0 x86_64 GNU/Linux asset; change `TARGET` to the
+This example installs the v0.4.1 x86_64 GNU/Linux asset; change `TARGET` to the
 published target for your machine when needed:
 
 ```sh
-VERSION=0.4.0
+VERSION=0.4.1
 TARGET=x86_64-unknown-linux-gnu
 ASSET="shade-tree-$VERSION-$TARGET-live"
 curl -LO "https://github.com/dmarzzz/shade-tree-node/releases/download/v$VERSION/$ASSET"

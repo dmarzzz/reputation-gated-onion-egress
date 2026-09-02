@@ -11,7 +11,7 @@
 # never fetches a binary over cleartext from the network.
 #
 # Knobs (environment; `curl | sh` cannot take flags):
-#   SHADE_TREE_VERSION       release tag to install (`v0.4.0` or `0.4.0`); default: latest
+#   SHADE_TREE_VERSION       release tag to install (`v0.4.1` or `0.4.1`); default: latest
 #   SHADE_TREE_LIVE=auto     install the `-live` agent where published (default); use 0 for
 #                            the verifier-only binary or 1 to require a live binary
 #   SHADE_TREE_INSTALL_DIR   destination directory; default $HOME/.local/bin
@@ -42,7 +42,7 @@ Installs the prebuilt Rust `shade-tree` client from a GitHub Release into ~/.loc
 verifying its sha256 against the published .sha256 asset. No sudo, ever.
 
 environment:
-  SHADE_TREE_VERSION=v0.4.0     pin a release (default: latest)
+  SHADE_TREE_VERSION=v0.4.1     pin a release (default: latest)
   SHADE_TREE_LIVE=auto          default: -live agent where published, verifier otherwise;
                                 1 requires -live, 0 installs the verifier-only binary
   SHADE_TREE_INSTALL_DIR=DIR    destination (default: $HOME/.local/bin)

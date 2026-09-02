@@ -42,7 +42,7 @@ arm64 live asset. Intel macOS (`x86_64-apple-darwin`) has no v0.4 live asset.
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `SHADE_TREE_VERSION` | latest release | Pin a release, such as `v0.4.0` or `0.4.0` |
+| `SHADE_TREE_VERSION` | latest release | Pin a release, such as `v0.4.1` or `0.4.1` |
 | `SHADE_TREE_LIVE` | `auto` | `auto` probes live, falling back only when that release lacks it; `1` requires live; `0` installs verifier-only |
 | `SHADE_TREE_INSTALL_DIR` | `$HOME/.local/bin` | User-writable destination directory, created if missing |
 | `SHADE_TREE_FORCE` | `0` | `1` explicitly permits replacing a destination symlink to a file; directory links are always refused |
@@ -50,13 +50,13 @@ arm64 live asset. Intel macOS (`x86_64-apple-darwin`) has no v0.4 live asset.
 | `SHADE_TREE_LIBC` | detected | Set `gnu` or `musl` only when Linux libc detection is unavailable |
 | `SHADE_TREE_RELEASE_BASE` | GitHub Releases | Alternate network bases must use HTTPS; local schemes exist only for the offline selftest |
 
-For example, pin the first official research preview while keeping automatic
+For example, pin the patched research preview while keeping automatic
 target selection:
 
 ```sh
 curl -q -fsSL --proto '=https' --proto-redir '=https' \
   https://raw.githubusercontent.com/dmarzzz/shade-tree-node/main/scripts/install.sh \
-  | SHADE_TREE_VERSION=v0.4.0 sh
+  | SHADE_TREE_VERSION=v0.4.1 sh
 ```
 
 The one-liner downloads code before you inspect it. To review it first, save it
@@ -68,12 +68,12 @@ installer on x86_64 Windows; PowerShell users can use the manual process below.
 Choose the `-live` asset for your platform from the
 [latest release](https://github.com/dmarzzz/shade-tree-node/releases/latest).
 Linux users can choose GNU for ordinary glibc distributions or musl for a
-statically linked libc target. This x86_64 GNU example installs v0.4.0; change
+statically linked libc target. This x86_64 GNU example installs v0.4.1; change
 `TARGET` to another published target from the table above when needed. `-q`
 must be curl's first option so user configuration cannot disable TLS checks:
 
 ```sh
-VERSION=0.4.0
+VERSION=0.4.1
 TARGET=x86_64-unknown-linux-gnu
 ASSET="shade-tree-$VERSION-$TARGET-live"
 curl -q -fLO --proto '=https' --proto-redir '=https' \
@@ -103,14 +103,14 @@ the macOS asset is checksummed and attested but not notarized. After verifying
 the checksum, remove a Gatekeeper quarantine attribute if macOS added one:
 
 ```sh
-xattr -d com.apple.quarantine ./shade-tree-0.4.0-aarch64-apple-darwin-live
+xattr -d com.apple.quarantine ./shade-tree-0.4.1-aarch64-apple-darwin-live
 ```
 
 On Windows, compare the digest printed by PowerShell with the contents of the
 downloaded `.sha256` file before renaming the binary:
 
 ```powershell
-Get-FileHash .\shade-tree-0.4.0-x86_64-pc-windows-msvc-live.exe -Algorithm SHA256
+Get-FileHash .\shade-tree-0.4.1-x86_64-pc-windows-msvc-live.exe -Algorithm SHA256
 ```
 
 ## No-Node agent quickstart
