@@ -128,7 +128,9 @@ case "$BASE" in
     case "$AUTHORITY" in *:) die "malformed port in SHADE_TREE_RELEASE_BASE ('$AUTHORITY')" ;; esac
     if [ -n "$PORTPART" ]; then
       case "$PORTPART" in *[!0-9]*) die "malformed port in SHADE_TREE_RELEASE_BASE ('$AUTHORITY')" ;; esac
-      [ "$PORTPART" -ge 1 ] && [ "$PORTPART" -le 65535 ] || die "port out of range in SHADE_TREE_RELEASE_BASE ('$AUTHORITY')"
+      if [ "$PORTPART" -lt 1 ] || [ "$PORTPART" -gt 65535 ]; then
+        die "port out of range in SHADE_TREE_RELEASE_BASE ('$AUTHORITY')"
+      fi
     fi
     PROTO=http ;;
   *) die "SHADE_TREE_RELEASE_BASE must be an https:// URL (got '$BASE')" ;;
@@ -240,7 +242,9 @@ else
   # header needs no API token and no JSON parser.
   LOCATION="$(curl_head -o /dev/null -w '%{redirect_url}' "$BASE/latest" || true)"
   TAG="${LOCATION##*/tag/}"
-  [ -n "$LOCATION" ] && [ "$TAG" != "$LOCATION" ] || die "could not resolve the latest release from $BASE/latest (set SHADE_TREE_VERSION to pin one)"
+  if [ -z "$LOCATION" ] || [ "$TAG" = "$LOCATION" ]; then
+    die "could not resolve the latest release from $BASE/latest (set SHADE_TREE_VERSION to pin one)"
+  fi
   VERSION="${TAG#v}"
   say "release: $TAG (latest)"
 fi
@@ -374,7 +378,9 @@ check_destination
 if [ -L "$DEST" ]; then rm -f "$DEST" || die "cannot remove symlink $DEST"; fi
 mv -f "$STAGE" "$DEST"
 STAGE=""
-[ -f "$DEST" ] && [ ! -L "$DEST" ] && [ -x "$DEST" ] || die "$DEST is not the installed executable after the rename; refusing to report success"
+if [ ! -f "$DEST" ] || [ -L "$DEST" ] || [ ! -x "$DEST" ]; then
+  die "$DEST is not the installed executable after the rename; refusing to report success"
+fi
 say "installed: $DEST ($TAG, $TARGET${SUFFIX:+, live})"
 
 # --- after-care -------------------------------------------------------------------------------

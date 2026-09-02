@@ -676,7 +676,7 @@ async function main() {
       const shellcheck = spawnSync("sh", ["-c", "command -v shellcheck"], { encoding: "utf8" }).stdout.trim();
       if (shellcheck) {
         const r = spawnSync(shellcheck, ["-s", "sh", SCRIPT], { encoding: "utf8" });
-        ok(r.status === 0, `shellcheck -s sh clean${r.status === 0 ? "" : `\n${r.stdout}`}`);
+        ok(r.status === 0, `shellcheck -s sh clean${r.status === 0 ? "" : `\n${r.stdout ?? ""}${r.stderr ?? ""}`}`);
       } else console.log("  skip shellcheck (not on PATH)");
     }
   } finally {
