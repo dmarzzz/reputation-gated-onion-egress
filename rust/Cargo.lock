@@ -5488,12 +5488,27 @@ dependencies = [
 
 [[package]]
 name = "shade-tree-client"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
- "arti-client",
+ "base64",
+ "getrandom 0.3.4",
  "hex",
+ "libc",
  "num-bigint",
  "reqwest",
+ "serde",
+ "serde_json",
+ "shade-tree-egress",
+ "shade-tree-proto",
+ "shade-tree-rln",
+ "tokio",
+]
+
+[[package]]
+name = "shade-tree-egress"
+version = "0.4.0"
+dependencies = [
+ "arti-client",
  "serde",
  "serde_json",
  "shade-tree-proto",
@@ -5504,7 +5519,7 @@ dependencies = [
 
 [[package]]
 name = "shade-tree-proto"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "data-encoding",
  "ed25519-dalek 3.0.0",
@@ -5518,7 +5533,7 @@ dependencies = [
 
 [[package]]
 name = "shade-tree-rln"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "ark-bn254",
  "ark-circom",

@@ -32,62 +32,82 @@ at a time.
 ## Implementation maturity
 
 Maturity describes implementation scope and validation, not security assurance.
-Both implementations are v0.3.0 research previews under the warning above.
+Both implementations are research previews under the warning above.
 
 | Implementation | Status | Current scope | Validation |
 | --- | --- | --- | --- |
-| **Node.js / JavaScript** | Full-stack reference preview | Proxy and SDK, agent wrapper, Shade Tree node, Elder Tree, enrollment, and operator tools. This is the current agent and operator path. | Full suite on Node.js 20, 22, and 24; bootstrap E2E; best-effort real-Tor E2E. |
-| **Rust** | Conformance-tested client preview | The default binary verifies and selects. The `-live` build adds one-shot RLN admission over embedded Arti. It does not provide the HTTP Proxy, application payload forwarding, agent wrapper, Shade Tree node, or Elder Tree. | All-target, all-feature Cargo CI; shared v4 conformance vectors; Rust-to-JavaScript proof interop harnesses. |
+| **Node.js / JavaScript** | Full-stack reference preview | Proxy and SDK, Shade Tree node, Elder Tree, membership/operator tools, and contributor harnesses. This remains the operator and in-process JavaScript path. | Full suite on Node.js 20, 22, and 24; bootstrap E2E; best-effort real-Tor E2E. |
+| **Rust** | Primary agent distribution preview | The checksummed `-live` binary creates identities, runs the embedded-Arti CONNECT Proxy, launches one proxy-scoped agent, and exposes the reusable Rust egress client. It does not provide a Shade Tree node or Elder Tree. | All-target, all-feature Cargo CI; shared v4 conformance vectors; Rust-to-JavaScript proof and Proxy interop; scheduled real-Hermes/Arti E2E gate. |
 
-Use the Node.js path for agents and operators today. Use the checksummed Rust
-[`-live` release](rust/INSTALL.md) for protocol and standalone admission
-experiments.
+Use the checksummed Rust [`-live` release](rust/INSTALL.md) for agents. It needs
+neither Node.js nor a client-side Tor daemon. Use the Node.js implementation for
+Grove operation, the JavaScript SDK, and repository development.
 
 ## Agent developers
 
-Start with the practical [agent guide](docs/AGENT.md). Install the current agent
-CLI directly from GitHub:
+Start with the complete [no-Node agent guide](docs/AGENT.md). Download the
+`-live` asset and matching `.sha256` for your platform from the
+[latest release](https://github.com/dmarzzz/shade-tree-node/releases/latest),
+verify it, and install it as `shade-tree`. For example, on Linux:
 
 ```bash
-npm install --global git+https://github.com/dmarzzz/shade-tree-node.git
+VERSION=0.4.0
+TARGET=x86_64-unknown-linux-gnu
+ASSET="shade-tree-$VERSION-$TARGET-live"
+curl -LO "https://github.com/dmarzzz/shade-tree-node/releases/download/v$VERSION/$ASSET"
+curl -LO "https://github.com/dmarzzz/shade-tree-node/releases/download/v$VERSION/$ASSET.sha256"
+sha256sum -c "$ASSET.sha256"
+chmod +x "$ASSET"
+mkdir -p ~/.local/bin
+install -m 0755 "$ASSET" ~/.local/bin/shade-tree
+shade-tree --version
 ```
 
-This is a Git install, not an npm registry release. You need Node.js 20+, npm,
-Git, Tor, and an operator-supplied v4 access profile. For invited access, that
-profile includes a member list and the tier used to enroll your leaf:
+Ask a Grove operator for the exact tier and discovery values first. Create an
+owner-only identity locally, then submit only the printed public leaf through
+that operator's admission process:
 
 ```bash
-read -s SHADE_TREE_SECRET && export SHADE_TREE_SECRET
-read -r SHADE_TREE_BOOTNODE_ONION && export SHADE_TREE_BOOTNODE_ONION
-read -r SHADE_TREE_DIR_SIGNER && export SHADE_TREE_DIR_SIGNER
-read -r SHADE_TREE_LIMIT && export SHADE_TREE_LIMIT
+read -r SHADE_TREE_LIMIT
+shade-tree enroll --limit "$SHADE_TREE_LIMIT" --out identity.json > leaf.txt
 ```
 
-Paste the member secret at the hidden prompt. Then start the Proxy:
+`enroll` generates identity material; it does not add the leaf to a Grove.
+Continue only after the operator confirms admission and supplies the matching
+member set (or on-chain source), Elder onion, and signer pin. Then start the
+self-contained Proxy:
 
 ```bash
-SHADE_TREE_MEMBERS_FILE=./members.json \
+read -r SHADE_TREE_BOOTNODE_ONION
+read -r SHADE_TREE_DIR_SIGNER
+(umask 077; set -C; shade-tree proxy-token > proxy-token.txt)
+IFS= read -r SHADE_TREE_PROXY_TOKEN < proxy-token.txt
+export SHADE_TREE_PROXY_TOKEN
 shade-tree proxy \
-  --bootnode "$SHADE_TREE_BOOTNODE_ONION" \
-  --dir-signer "$SHADE_TREE_DIR_SIGNER" \
-  --limit "$SHADE_TREE_LIMIT" \
-  --tor-port 9050
+  --bootnode-onion "$SHADE_TREE_BOOTNODE_ONION" \
+  --signer "$SHADE_TREE_DIR_SIGNER" \
+  --identity identity.json \
+  --members members.json \
+  --listen 127.0.0.1:8118
 ```
-
-The secret is not echoed or placed in the Proxy's process arguments.
 
 In another terminal, route only the agent process:
 
 ```bash
-shade-tree run -- your-agent
+IFS= read -r SHADE_TREE_PROXY_TOKEN < proxy-token.txt
+export SHADE_TREE_PROXY_TOKEN
+shade-tree run --proxy http://127.0.0.1:8118 -- your-agent
 ```
 
 `shade-tree run` passes proxy variables only to its child and refuses to launch
-if the Proxy is down. Software that ignores proxy variables can use
-`http://127.0.0.1:8888` directly. Agents that own their networking can import
+if the authenticated Proxy preflight fails. It puts the local token only in the
+child's proxy URLs; the raw `SHADE_TREE_PROXY_TOKEN` and other operator settings
+are removed from the child environment. Software that ignores proxy variables
+must be configured with the authenticated URL
+`http://shade-tree:$SHADE_TREE_PROXY_TOKEN@127.0.0.1:8118`. Rust applications
+can use the `shade-tree-egress` crate; JavaScript applications can import
 [`ShadeTreeClient`](docs/SDK.md). There is no repo-maintained public v4
-connection profile yet. Obtain enrollment, member-set inputs, the Elder onion,
-and its signer pin from the operator you intend to use.
+connection profile yet.
 
 ## How it works
 
@@ -177,7 +197,7 @@ can carry many requests inside it. Read the [protocol](specs/protocol.md) and
 | [`client/`](client/) | Local proxy, discovery, and node rotation |
 | [`gateway/`](gateway/) | Proof gate and destination tunnel |
 | [`bootnode/`](bootnode/) | Elder Tree discovery service and operator tools |
-| [`rust/`](rust/) | Rust client, protocol crate, and RLN prover |
+| [`rust/`](rust/) | Rust binary, reusable egress/protocol crates, and RLN prover |
 | [`contracts/`](contracts/) | Optional Sepolia membership and operator sets |
 | [`network/`](network/) | Signed test-network records |
 | [`specs/`](specs/) | Canonical protocol and public Data API contracts |

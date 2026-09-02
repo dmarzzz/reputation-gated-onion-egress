@@ -11,11 +11,12 @@ name: release
 #     done with cargo-zigbuild (zig supplies the cross linker); macOS/windows build on their
 #     own runner. No embedded circuit artifacts, so it stays small.
 #   - LIVE `shade-tree` (egress: RLN Groth16 prover via ark-circom->wasmer + embedded Tor via arti).
-#     Heavy native deps that are NOT worth statically cross-linking, so each `live` binary is
-#     built NATIVELY on its runner OS: ubuntu=linux-x64, macos=arm64, windows=x64. The RLN
-#     circuit artifacts are `include_bytes!`'d in (shade-tree-rln `embedded-artifacts` feature,
-#     enabled by `shade-tree-client`'s `live`), so the `live` binary is self-contained — no external
-#     circuit files needed to egress.
+#     Heavy native deps are built on a runner with the target CPU architecture. GNU Linux,
+#     macOS, and Windows use cargo directly; Linux musl uses cargo-zigbuild only for the libc/linker
+#     boundary. In particular, aarch64 live builds run on GitHub's arm64 Linux runner rather than
+#     cross-compiling wasmer from x86_64. The RLN circuit artifacts are `include_bytes!`'d in
+#     (shade-tree-rln `embedded-artifacts` feature, enabled by `shade-tree-client`'s `live`), so the
+#     `live` binary is self-contained — no external circuit files are needed to egress.
 #
 # TESTNET-ONLY artifacts: the embedded ZK artifacts are from an UNTRUSTED testnet ceremony
 # (docs/SHIP-PLAN.md T-HARD-1). A production release must re-embed audited artifacts.
@@ -198,12 +199,12 @@ jobs:
           name: shade-tree-${{ matrix.target }}
           path: dist/*
 
-  # ------------------------------------------------------------------ live (native per runner)
+  # ------------------------------------------------------- live (target-architecture runners)
   live:
     name: live ${{ matrix.target }}
     needs: [set-version, lock-check, rust-verify]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 90
+    timeout-minutes: 120
     permissions:
       contents: read
       id-token: write # mint the short-lived Sigstore signing certificate
@@ -213,9 +214,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { target: x86_64-unknown-linux-gnu, os: ubuntu-latest }
-          - { target: aarch64-apple-darwin, os: macos-latest }
-          - { target: x86_64-pc-windows-msvc, os: windows-latest, ext: ".exe" }
+          - { target: x86_64-unknown-linux-gnu, os: ubuntu-latest, builder: native }
+          - { target: aarch64-unknown-linux-gnu, os: ubuntu-24.04-arm, builder: native }
+          - { target: x86_64-unknown-linux-musl, os: ubuntu-latest, builder: zig }
+          - { target: aarch64-unknown-linux-musl, os: ubuntu-24.04-arm, builder: zig }
+          - { target: aarch64-apple-darwin, os: macos-latest, builder: native }
+          - { target: x86_64-pc-windows-msvc, os: windows-latest, builder: native, ext: ".exe" }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -228,12 +232,53 @@ jobs:
           toolchain: 1.98.0
           targets: ${{ matrix.target }}
 
+      # The Linux runner already matches the target CPU. Zig supplies the musl
+      # libc/linker boundary without asking wasmer/ark-circom to cross CPU architectures.
+      - name: Install zig (live musl)
+        if: ${{ matrix.builder == 'zig' }}
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
+        with:
+          use-cache: false
+      - name: Install cargo-zigbuild (live musl)
+        if: ${{ matrix.builder == 'zig' }}
+        uses: taiki-e/install-action@0758d235715de2f3551eacc980d9ae8fce9342c3 # v2.87.3
+        with:
+          tool: cargo-zigbuild
+
       - name: Build live (native, embedded artifacts)
+        if: ${{ matrix.builder == 'native' }}
         shell: bash
         working-directory: rust
         env:
           RELEASE_TARGET: ${{ matrix.target }}
         run: cargo build --release -p shade-tree-client --features live --target "$RELEASE_TARGET"
+
+      - name: Build live (musl via zigbuild, embedded artifacts)
+        if: ${{ matrix.builder == 'zig' }}
+        shell: bash
+        working-directory: rust
+        env:
+          RELEASE_TARGET: ${{ matrix.target }}
+        run: cargo zigbuild --release -p shade-tree-client --features live --target "$RELEASE_TARGET"
+
+      # Every live target uses a runner with the same CPU architecture, and the
+      # musl assets are executable on their Linux builders. Catch a stale/default
+      # CLI before packaging (notably a binary missing the npm-free agent surface).
+      - name: Smoke-check live agent commands
+        shell: bash
+        working-directory: rust
+        env:
+          RELEASE_EXT: ${{ matrix.ext }}
+          RELEASE_TARGET: ${{ matrix.target }}
+        run: |
+          BIN="target/$RELEASE_TARGET/release/shade-tree$RELEASE_EXT"
+          HELP="$("$BIN" --help)"
+          grep -Eq '^[[:space:]]+enroll([[:space:]]|$)' <<<"$HELP"
+          grep -Eq '^[[:space:]]+proxy-token([[:space:]]|$)' <<<"$HELP"
+          grep -Eq '^[[:space:]]+proxy([[:space:]]|$)' <<<"$HELP"
+          grep -Eq '^[[:space:]]+run([[:space:]]|$)' <<<"$HELP"
+          TOKEN="$("$BIN" proxy-token)"
+          [[ "$TOKEN" =~ ^[0-9a-f]{64}$ ]]
 
       - name: Package
         id: package

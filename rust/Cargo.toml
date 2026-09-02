@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "shade-tree-proto",
     "shade-tree-client",
+    "shade-tree-egress",
     "shade-tree-rln",
 ]
 # shade-tree-rln (T-RUST-2b RLN-INTEROP) has a heavy dep tree (ark-circom -> wasmer). Keep

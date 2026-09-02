@@ -1,6 +1,6 @@
 [package]
 name = "shade-tree-client"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 license = "MIT"
 description = "Shade Tree distributable client: single static binary with embedded Tor. Rust port of client/shade-tree-client.mjs."
@@ -22,7 +22,7 @@ path = "src/main.rs"
 # (`--circuits` becomes optional; omit it to use the embedded artifacts). The ~8MB of
 # artifacts land only in the `live` build — the default deterministic binary never pulls
 # shade-tree-rln at all, so it stays small.
-live = ["dep:shade-tree-rln", "shade-tree-rln/embedded-artifacts", "dep:arti-client", "dep:tor-rtcompat", "dep:tokio", "dep:reqwest", "dep:num-bigint"]
+live = ["dep:shade-tree-rln", "shade-tree-rln/embedded-artifacts", "dep:shade-tree-egress", "dep:tokio", "dep:reqwest", "dep:num-bigint", "dep:getrandom"]
 
 [dependencies]
 shade-tree-proto = { path = "../shade-tree-proto" }
@@ -30,6 +30,7 @@ shade-tree-proto = { path = "../shade-tree-proto" }
 # (T-RUST-2b/2c). Excluded from default-members and only compiled under `--features live`,
 # so the default build stays fast (no ark-circom / wasmer).
 shade-tree-rln = { path = "../shade-tree-rln", optional = true }
+shade-tree-egress = { path = "../shade-tree-egress", optional = true }
 # T-RUST-2 deterministic client: parse UNTRUSTED directory/announce/receipt JSON into
 # local DTOs, then hand the mapped shade-tree-proto structs to the trust-critical checks.
 # serde/serde_json live ONLY here — shade-tree-proto's canonical byte path stays serde-free.
@@ -37,6 +38,7 @@ serde = { version = "1", features = ["derive"] } # derive Deserialize on the unt
 serde_json = "1"                                 # parse the directory/receipt files
 # hex: render pubkeys recovered from a verified receipt for display.
 hex = "0.4"
+base64 = "0.22"
 
 # OPTIONAL, feature-gated (`live`): embedded Tor transport for the onion egress dial
 # (T-RUST-2e). CRITICAL dep note: `default-features = false` with an explicit feature list
@@ -52,13 +54,15 @@ hex = "0.4"
 # makes the linux/macos `live` binaries dynamically depend on the host's libsqlite3. The
 # feature turns on `rusqlite/bundled` (the SQLite amalgamation compiled in via `cc`), so
 # the `live` binary is self-contained on every runner OS — the whole point of the client.
-arti-client = { version = "0.45", default-features = false, features = ["tokio", "rustls", "onion-service-client", "static-sqlite"], optional = true }
-tor-rtcompat = { version = "0.45", default-features = false, features = ["tokio", "rustls"], optional = true }
-tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "macros", "io-util", "io-std", "net", "time"], optional = true }
+tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "macros", "io-util", "io-std", "net", "time", "sync"], optional = true }
 # Native on-chain membership discovery (`shade-tree leaves` and egress
 # `--contract`) uses direct JSON-RPC over HTTP(S); no Node.js exporter required.
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"], optional = true }
 num-bigint = { version = "0.4", optional = true }
+getrandom = { version = "0.3", optional = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+libc = "0.2"
 # arg parsing is hand-rolled (no clap) to keep the dep tree tiny; a small seeded PRNG
 # (mulberry32, in-crate) drives `select` so no `rand` runtime dep is needed either.
 

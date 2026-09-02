@@ -1,6 +1,6 @@
 {
   "name": "shade-tree-node",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Run a local proxy for an agent, or a node that provides proof-gated onion egress.",
   "engines": {
     "node": ">=20"
@@ -46,6 +46,7 @@
     "test": "node scripts/test-all.mjs",
     "test:fast": "SHADE_TREE_FAST=1 node scripts/test-all.mjs --no-contracts",
     "test:node": "node scripts/test-all.mjs --no-contracts",
+    "test:hermes": "SHADE_TREE_HERMES_E2E=1 bash test/hermes-e2e.sh",
     "test:site": "node test/site.selftest.mjs",
     "test:site:browser": "playwright test --config=playwright.config.mjs",
     "test:site:production": "node scripts/site-smoke.mjs",

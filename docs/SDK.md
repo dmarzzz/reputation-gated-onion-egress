@@ -4,6 +4,13 @@
 access proofs, chooses a node, and opens a raw HTTPS tunnel without starting
 the local proxy. The proxy in `client/shim.mjs` uses the same class.
 
+This document covers the shipped JavaScript API. There is no public
+in-process Rust API yet. Rust applications should use the live binary's
+embedded-Arti CONNECT proxy described in
+[CLIENTS.md](CLIENTS.md#option-c-self-contained-rust-proxy-embedded-arti); the
+reusable Rust crate is tracked in
+[ROADMAP.md §2.6](ROADMAP.md#26-reusable-in-process-rust-client--p2).
+
 For most existing agents, the smaller integration is still:
 
 ```sh

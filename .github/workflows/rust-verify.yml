@@ -94,3 +94,6 @@ jobs:
 
       - name: Rust client -> JavaScript gateway + payload relay (blocking)
         run: bash rust/shade-tree-rln/interop/egress-run.sh
+
+      - name: Rust CONNECT Proxy -> JavaScript gateway + early payload (blocking)
+        run: bash rust/shade-tree-rln/interop/proxy-run.sh

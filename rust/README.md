@@ -17,12 +17,14 @@ on the same v4 wire format.
 rust/
 ├── shade-tree-proto/   canonical bytes, signatures, selection, receipts
 ├── shade-tree-client/  the `shade-tree` binary
+├── shade-tree-egress/  reusable async admission, proving, Tor, and tunnel client
 └── shade-tree-rln/     RLN proving, verification, and artifact bindings
 ```
 
 The default binary verifies directories and receipts, selects gateways, and
 maintains a last-known-good directory cache. The optional `live` feature adds
-RLN proof generation and an embedded Arti Tor client for onion egress.
+identity creation, RLN proof generation, the reusable egress crate, embedded
+Arti, the loopback Proxy, and the agent `run` wrapper.
 
 ```sh
 cd rust
@@ -36,6 +38,7 @@ cargo build --release -p shade-tree-client --features live
 # Complete workspace checks
 cargo test --workspace --all-features
 cargo check --workspace --all-targets --all-features
+bash shade-tree-rln/interop/proxy-run.sh
 ```
 
 The binary is written to `target/release/shade-tree`. Release binaries and
@@ -72,12 +75,60 @@ shade-tree verify-directory …
 shade-tree fetch-directory …
 shade-tree select …
 shade-tree verify-receipt …
+shade-tree proxy-token …       # requires --features live; generates local Proxy auth
+shade-tree enroll …            # requires --features live; creates a new identity
+shade-tree identity …          # requires --features live; derives from an existing secret
+shade-tree leaves …            # requires --features live; reconstructs an on-chain set
 shade-tree egress …            # requires --features live
+shade-tree proxy …             # requires --features live
+shade-tree run -- <agent>      # process-scoped use of an existing Proxy
 ```
 
-Run `shade-tree --help` for the complete option set. For the local agent proxy
-and `shade-tree run -- <agent>` wrapper, use the npm package documented in the
-repository [`README`](../README.md).
+Run `shade-tree --help` for the complete option set. The live binary's `proxy`
+command is the language-neutral agent boundary: it listens on loopback for HTTP
+CONNECT and embeds Arti, so the client host needs no system Tor daemon or SOCKS
+port. One successfully bootstrapped base Arti client is reused across CONNECT
+tunnels, while each logical tunnel gets a separate isolation view. Proof
+generation runs outside the async network executor.
+
+```sh
+(umask 077; set -C; ./target/release/shade-tree proxy-token > proxy-token.txt)
+IFS= read -r SHADE_TREE_PROXY_TOKEN < proxy-token.txt
+export SHADE_TREE_PROXY_TOKEN
+./target/release/shade-tree proxy \
+  --onion <gateway.onion>:80 \
+  --identity identity.json \
+  --members members.json \
+  --listen 127.0.0.1:8118
+```
+
+The Proxy requires this unpredictable local token. The process-scoped wrapper
+performs an authenticated, fail-closed preflight and puts Basic credentials
+only in the child proxy URLs:
+
+```sh
+IFS= read -r SHADE_TREE_PROXY_TOKEN < proxy-token.txt
+export SHADE_TREE_PROXY_TOKEN
+shade-tree run --proxy http://127.0.0.1:8118 -- your-agent
+```
+
+Create a new identity with `shade-tree enroll --limit N --out identity.json`,
+then send only its printed public leaf through a Grove operator's admission
+process. `enroll` does not change a remote member root or submit an on-chain
+transaction; its optional `--members` flag updates only a local version-2 demo
+set. Use `shade-tree identity` only when deterministically deriving
+from an existing secret. In both cases, `identity.json` contains the member
+secret and must remain local.
+
+Dynamic discovery can replace `--onion` with `--directory <file> --signer
+<hex>` or `--bootnode-onion <onion> --signer <hex>`; see `shade-tree --help`
+for the full set of egress options.
+
+Rust applications that need an in-process stream API can use the
+`shade-tree-egress` workspace crate through a Git or path dependency. It is not
+currently published on crates.io. The CLI `egress` and `proxy` paths consume
+the same client rather than maintaining a second implementation. Other
+languages should use the loopback Proxy.
 
 ## Protocol changes
 

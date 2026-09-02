@@ -10,16 +10,18 @@ A proxy runs beside the agent. A node accepts the proof and provides egress. The
 
 The node needs a **fresh RLN proof per tunnel**. That is what makes the nullifier,
 the per-epoch rate cap, and the slashing work, so *something* client-side must mint it. What
-varies is where that "something" lives. There are two shipped shapes and one planned.
+varies is where that "something" lives. There are four shipped shapes and one planned.
 
 ## The irreducible part
 
 Every CONNECT tunnel carries one Groth16 proof bound to a fresh `(epoch, slot)` nullifier. You
 cannot set it once and reuse it: reusing a nullifier with a different signal is exactly the
 over-spend the gateway slashes on. So every proxy, library, or CLI client regenerates the
-proof per tunnel. Both shapes below share the same hardened core (`client/shade-tree-client.mjs`):
-one proof per logical tunnel, deterministic across gateway failover (same signal → same
-share), plus slot + gateway rotation.
+proof per tunnel. The JavaScript library and Proxy share the same hardened core
+(`client/shade-tree-client.mjs`): one proof per logical tunnel, deterministic across gateway
+failover (same signal → same share), plus slot + gateway rotation. The Rust live binary is
+wire-compatible, shares the same default-on slot-state format, and exposes one reusable
+`shade-tree-egress` implementation to both its CLI and Rust callers.
 
 ## Option A: library (`ShadeTreeClient`)
 
@@ -118,6 +120,67 @@ its pinned signer. A direct SDK import or `node client/shim.mjs` bypasses that r
 can reach the local-development `tor/hs/hostname` fallback, so treat a missing signer there as a
 configuration error too.
 
+## Option C: self-contained Rust proxy (embedded Arti)
+
+Use the Rust live binary when an agent or generic server should consume a local
+HTTP CONNECT proxy without installing a client-side Tor daemon. The binary
+contains Arti, the RLN prover, and the locked proof artifacts:
+
+```bash
+cd rust
+cargo build --release -p shade-tree-client --features live
+
+(umask 077; set -C; ./target/release/shade-tree proxy-token > proxy-token.txt)
+IFS= read -r SHADE_TREE_PROXY_TOKEN < proxy-token.txt
+export SHADE_TREE_PROXY_TOKEN
+./target/release/shade-tree proxy \
+  --onion <v4-gateway.onion>:80 \
+  --identity identity.json \
+  --members members.json \
+  --listen 127.0.0.1:8118
+
+# In the agent terminal:
+IFS= read -r SHADE_TREE_PROXY_TOKEN < proxy-token.txt
+export SHADE_TREE_PROXY_TOKEN
+./target/release/shade-tree run -- your-agent
+```
+
+Use `--directory <file> --signer <hex>` or `--bootnode-onion <onion>
+--signer <hex>` instead of `--onion` for signed discovery. Create a new
+`identity.json` with `shade-tree enroll --limit N --out identity.json`, send
+only its printed public leaf through the operator's admission process, and wait
+for the matching root/member input. Identity creation does not itself admit the
+leaf. Use `shade-tree identity` only to derive from an existing secret. The
+resulting file contains secret material and must stay local.
+
+The Proxy requires an unpredictable URL-safe token of at least 32 characters;
+loopback alone does not isolate different OS accounts. It returns `200
+Connection Established` only after a node accepts the proof and connects to the
+target. It keeps one successfully bootstrapped base Arti client for the service
+lifetime. Each logical CONNECT gets an isolated Arti view reused only across
+that tunnel's gateway candidates. Launch one child with an authenticated,
+fail-closed preflight and process-scoped proxy variables:
+
+```bash
+shade-tree run --proxy http://127.0.0.1:8118 -- your-agent
+```
+
+## Option D: in-process Rust client (`shade-tree-egress`)
+
+Rust services that own their networking can use the same async client behind
+the live binary through a Git or path dependency. The workspace crate is not
+currently published on crates.io. It accepts the CLI's verified candidates and
+owns RLN proof construction, persistent slot allocation, one service-lifetime
+`Arc<TorClient>`, gateway failover, and the accepted bidirectional stream.
+Groth16 proving runs on a bounded blocking worker so it does not stall the
+async network executor.
+
+The CLI `egress` and `proxy` commands are consumers of this crate; they do not
+fork the protocol or transport logic. FFI is deliberately out of scope. Other
+languages should use Option C's loopback CONNECT boundary. See
+[ROADMAP.md §2.6](ROADMAP.md#26-reusable-in-process-rust-client--p2) for the
+implemented lifecycle and acceptance criteria.
+
 ## Planned: stock HTTP CONNECT + `Proxy-Authorization`
 
 Teach the gateway to also speak a standard HTTP CONNECT proxy and read the proof from a
@@ -134,7 +197,8 @@ This removes the client software **for scripted one-shot requests**. It does **n
 multi-request clients (a browser/agent that sets the proxy once) safely: `Proxy-Authorization`
 is static, but the proof must be fresh per tunnel; reusing it across targets either breaks
 the rate cap or self-slashes. So B is a great gateway interface + a clean one-shot path, but
-multi-request clients still need A (library) or the shim. Not built yet.
+multi-request clients still need A or D (library), or B or C (local Proxy). Not
+built yet.
 
 Note: the proof (~400+ bytes) does **not** fit SOCKS5 username/password (RFC 1929 caps each
 at 255 bytes), which is why B rides on HTTP CONNECT, not SOCKS auth.

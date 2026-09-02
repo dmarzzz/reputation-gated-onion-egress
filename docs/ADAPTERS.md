@@ -35,6 +35,12 @@ same node again. Both have the protocol boundaries described below. The Proxy is
 behind an HTTP-CONNECT front end (`client/shim.mjs` over
 `client/shade-tree-client.mjs`).
 
+The live Rust binary offers the same loopback CONNECT boundary on port `8118`
+with Arti embedded, so a client-side Tor daemon is unnecessary. It is the
+self-contained sidecar choice for Rust services and agents in any language; see
+[Clients, Option C](CLIENTS.md#option-c-self-contained-rust-proxy-embedded-arti).
+The in-process Rust library remains roadmap work.
+
 ## Shared env
 
 Both styles read the same environment (each maps 1:1 to a `shade-tree proxy` flag; see

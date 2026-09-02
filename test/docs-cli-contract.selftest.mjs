@@ -61,7 +61,10 @@ assert.match(overview, new RegExp(`shade-tree-${pkg.version.replaceAll(".", "\\.
 assert.doesNotMatch(overview, /shade-tree-0\.1\.1-/, "OVERVIEW contains no stale v0.1.1 asset name");
 
 for (const path of ["docs/OVERVIEW.md", "rust/INSTALL.md"]) {
-  const identityCommands = docs.get(path).split("\n").filter((line) => /shade-tree identity/.test(line));
+  const identityCommands = docs
+    .get(path)
+    .split("\n")
+    .filter((line) => /shade-tree(?:-[^\s]+)?\s+(?:enroll|identity)\b/.test(line));
   assert.ok(identityCommands.length > 0, `${path}: expected a Rust identity-generation command`);
   assert.ok(identityCommands.every((line) => /--limit/.test(line)), `${path}: every Rust identity command must carry the exact enrolled tier`);
 }

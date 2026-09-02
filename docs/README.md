@@ -32,7 +32,7 @@ A browsable HTML build of all of this: `node docs-site/build.mjs` ([`docs-site/`
 | [`ADAPTERS.md`](ADAPTERS.md) | Routing tools and agents (curl, SearXNG, browsers, LLM agents) through the local proxy |
 | [`RECEIPTS.md`](RECEIPTS.md) | Signed egress success receipts: proof a gateway actually served traffic, with no linkability channel |
 | [`PROTOCOL-VERSIONING.md`](PROTOCOL-VERSIONING.md) | The explicit v4 boundary, legacy-v3 rejection, artifact rotation, and coordinated fleet rollout |
-| [`../rust/INSTALL.md`](../rust/INSTALL.md) | The static Rust client: which binary for which platform, verify the checksum, `egress` with the `-live` build |
+| [`../rust/INSTALL.md`](../rust/INSTALL.md) | The static Rust client: platform binaries, checksums, one-shot `egress`, and the embedded-Arti CONNECT Proxy |
 
 ## Run it (gateway, bootnode, fleet)
 

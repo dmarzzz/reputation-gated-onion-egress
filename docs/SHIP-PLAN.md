@@ -435,9 +435,44 @@ slash, stake lifecycle) gets negative and concurrent cases, not just a positive 
   failover currently re-bootstraps arti per candidate — reuse one bootstrapped `TorClient` across the candidate
   loop (functionally correct today, just wasteful). *Accept:* consecutive `shade-tree egress` runs in one epoch use
   distinct slots/nullifiers; a multi-candidate over-Tor failover bootstraps Tor once.
-- [x] **T-RUST-4 (P2) Release binaries.** Cross-compiled static binaries (linux x86_64/arm64,
-  macOS, windows) in CI releases; `shade-tree` install without a runtime. *Accept:* a downloadable binary
-  runs on a clean box with no Node/Tor installed.
+- [x] **T-RUST-4 (P2) Release pipeline.** The default binary matrix covers Linux x86_64/aarch64
+  GNU+musl, macOS x86_64/aarch64, and Windows x86_64. The v0.4.0 live matrix adds Linux
+  x86_64/aarch64 GNU+musl beside macOS aarch64 and Windows x86_64: heavy live builds use a
+  target-architecture runner, with cargo-zigbuild only for the Linux musl libc/linker boundary.
+  Every binary is checksummed, gets an SPDX SBOM plus provenance/SBOM attestations, and the live
+  jobs execute `shade-tree --help` to require `proxy-token`, `enroll`, `proxy`, and `run` before packaging.
+  macOS remains explicitly non-notarized because no Apple Developer ID/notarization credentials
+  are configured. *Accept:* a successful v0.4.0 tag workflow produces a standalone checked binary
+  that runs on a clean agent box with no Node.js or system Tor daemon.
+- [ ] **T-RUST-5 (P2) Reusable in-process Rust client.** Keep the live Rust CONNECT Proxy as the
+  supported agent boundary while exposing the live lifecycle through the non-crates.io
+  `shade-tree-egress` workspace crate.
+  - [x] `Client`, `ConnectRequest`, `ProofRequest`, `SlotPolicy`, `Connected`, and `Gateway` form the
+    async stream API; one Proxy-lifetime runtime and `Arc<Client>` share one successfully
+    bootstrapped base Arti client, with a separate isolation view per logical CONNECT reused only
+    within that tunnel's failover.
+  - [x] Groth16 jobs use a bounded semaphore plus `spawn_blocking`; crash-safe allocation occurs inside
+    `Client::connect` before proving, and callers cannot supply a raw slot except through the loudly
+    unsafe slashing-test policy.
+  - [x] The Proxy and one-shot `egress` command consume the crate; unit coverage proves two tunnels/one
+    injected bootstrap, the proving bound, and crash/restart non-rewind. The always-green Proxy interop
+    has two real Rust proofs accepted by the JavaScript gateway through one long-lived Proxy.
+  - [x] The gated Hermes harness sends two CONNECT tunnels through Rust `run` and one long-lived
+    embedded-Arti Proxy, requires two gateway acceptances, and asserts one successful Arti bootstrap.
+  - [x] The Proxy requires local Basic authentication, bounds workers and queued admissions before
+    slot allocation, and applies deadlines to gateway acknowledgement and bootnode HTTP I/O.
+  - [ ] Dispatch that harness against the pushed v0.4.0 release commit and keep it green.
+  Public FFI remains out of scope. Full architecture and evidence: `docs/ROADMAP.md` §2.6.
+- [x] **T-RUST-6 (P1) npm-free agent front door.** The live Rust CLI now separates local
+  identity work from Grove admission: `enroll` generates a new owner-only identity and prints only
+  its public leaf; `identity` deterministically derives from an existing secret; neither performs
+  remote/on-chain admission. `proxy-token` supplies 256 bits of OS randomness for local Basic auth.
+  `run` performs a fail-closed authenticated loopback Proxy preflight, strips inherited
+  credentials/operator state, and adds HTTP(S)/WSS proxy variables only to its child. README and the
+  agent/install guides lead with the checksummed v0.4.0 live binary; npm remains documented for
+  operators, JavaScript SDK users, and repository contributors. *Accept:* a user following only
+  `docs/AGENT.md` goes from the v0.4.0 asset plus operator-supplied values to a proof-gated agent
+  tunnel without installing Node.js, npm, Git, or a client-side Tor daemon.
 
 ## 7. Monitoring & observability
 

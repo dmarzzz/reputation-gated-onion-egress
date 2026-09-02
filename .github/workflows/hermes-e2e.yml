@@ -1,0 +1,95 @@
+name: hermes-e2e
+
+# A GitHub-hosted runner is the temporary integration server: install a pinned real Hermes,
+# server-side Tor, and this checkout; build the live Rust Proxy; start a deterministic
+# loopback model; then run two native-Rust-wrapper CONNECT tunnels through one long-lived
+# Rust Proxy -> embedded Arti -> onion node -> public HTTPS path. No model API credential or long-lived Grove is
+# needed. Weekly cadence limits Tor/model-install load while workflow_dispatch keeps the
+# check available before releases.
+
+on:
+  schedule:
+    - cron: "23 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hermes-e2e
+  cancel-in-progress: false
+
+jobs:
+  hermes-e2e:
+    name: real Hermes through ephemeral Grove
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          submodules: recursive
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Shade Tree dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Install hidden-service Tor and pinned Hermes
+        env:
+          HERMES_COMMIT: d1ecebcbfd8c7f2b942fd9cc425cea028e34111c
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq tor >/dev/null
+          sudo systemctl stop tor >/dev/null 2>&1 || true
+          python -m venv "$RUNNER_TEMP/hermes-venv"
+          "$RUNNER_TEMP/hermes-venv/bin/pip" install --disable-pip-version-check \
+            "git+https://github.com/NousResearch/hermes-agent.git@$HERMES_COMMIT"
+          echo "$RUNNER_TEMP/hermes-venv/bin" >> "$GITHUB_PATH"
+
+      - name: Build Rust Proxy with embedded Arti
+        run: cargo build --locked --manifest-path rust/Cargo.toml -p shade-tree-client --features live
+
+      - name: Start deterministic loopback model
+        run: |
+          nohup node test/hermes-openai-stub.mjs > "$RUNNER_TEMP/hermes-stub.log" 2>&1 &
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:18080/health >/dev/null && exit 0
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/hermes-stub.log"
+          exit 1
+
+      - name: Run real Hermes through the ephemeral Grove
+        env:
+          CUSTOM_BASE_URL: http://127.0.0.1:18080/v1
+          CUSTOM_API_KEY: shade-tree-ci-no-secret
+          HERMES_E2E_MODEL: shade-tree-hermes-ci
+          HERMES_E2E_PROVIDER: custom
+          HERMES_E2E_IGNORE_USER_CONFIG: "1"
+          HERMES_E2E_RUST_BIN: ${{ github.workspace }}/rust/target/debug/shade-tree
+        run: |
+          for attempt in 1 2; do
+            echo "Hermes E2E attempt $attempt/2"
+            set +e
+            npm run test:hermes
+            rc=$?
+            set -e
+            [ "$rc" -eq 0 ] && exit 0
+            if [ "$attempt" -eq 1 ]; then
+              echo "attempt 1 failed (rc=$rc); retrying the disposable Grove once"
+            fi
+          done
+          exit "$rc"
+
+      - name: Report deterministic model state
+        if: always()
+        run: |
+          curl -fsS http://127.0.0.1:18080/state | tee -a "$GITHUB_STEP_SUMMARY" || true
