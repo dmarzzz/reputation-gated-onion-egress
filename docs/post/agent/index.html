@@ -60,18 +60,18 @@
     <header class="guide-intro">
       <h1>Add Shade Tree Grove to an agent.</h1>
       <p>Install one verified Rust binary, start its embedded-Arti Proxy, then give that route to one agent process.</p>
-      <p class="guide-status"><strong>Research preview.</strong> v0.4.0 is the first binary agent distribution. There is no repo-maintained public v4 access profile; an operator must admit your leaf and supply the matching discovery values.</p>
+      <p class="guide-status"><strong>Research preview.</strong> v0.4.1 is the current patched binary agent distribution. There is no repo-maintained public v4 access profile; an operator must admit your leaf and supply the matching discovery values.</p>
     </header>
 
     <div class="guide-steps">
       <section class="guide-step" aria-labelledby="agent-install">
         <h2 id="agent-install">1. Download and verify</h2>
-        <p>The installer detects the platform, downloads the matching v0.4.0 <code>-live</code> binary and checksum, verifies both digest and filename, and installs into <code>~/.local/bin</code>. The binary includes the Proxy, RLN prover, and Arti; the agent machine needs neither Node.js nor a system Tor daemon.</p>
-        <div class="command" aria-label="Install the Shade Tree Grove v0.4.0 live binary">
-          <code>curl -q -fsSL --proto '=https' --proto-redir '=https' \<br>&nbsp;&nbsp;https://raw.githubusercontent.com/dmarzzz/shade-tree-node/main/scripts/install.sh \<br>&nbsp;&nbsp;| SHADE_TREE_VERSION=v0.4.0 sh<br>shade-tree --version</code>
-          <button class="copy-command" type="button" data-copy="curl -q -fsSL --proto '=https' --proto-redir '=https' \&#10;  https://raw.githubusercontent.com/dmarzzz/shade-tree-node/main/scripts/install.sh \&#10;  | SHADE_TREE_VERSION=v0.4.0 sh&#10;shade-tree --version" aria-label="Copy v0.4.0 live binary installation commands">copy</button>
+        <p>The installer detects the platform, downloads the matching v0.4.1 <code>-live</code> binary and checksum, verifies both digest and filename, and installs into <code>~/.local/bin</code>. The binary includes the Proxy, RLN prover, and Arti; the agent machine needs neither Node.js nor a system Tor daemon.</p>
+        <div class="command" aria-label="Install the Shade Tree Grove v0.4.1 live binary">
+          <code>curl -q -fsSL --proto '=https' --proto-redir '=https' \<br>&nbsp;&nbsp;https://raw.githubusercontent.com/dmarzzz/shade-tree-node/main/scripts/install.sh \<br>&nbsp;&nbsp;| SHADE_TREE_VERSION=v0.4.1 sh<br>shade-tree --version</code>
+          <button class="copy-command" type="button" data-copy="curl -q -fsSL --proto '=https' --proto-redir '=https' \&#10;  https://raw.githubusercontent.com/dmarzzz/shade-tree-node/main/scripts/install.sh \&#10;  | SHADE_TREE_VERSION=v0.4.1 sh&#10;shade-tree --version" aria-label="Copy v0.4.1 live binary installation commands">copy</button>
         </div>
-        <p>Intel macOS has no prebuilt live tunnel in v0.4.0. The macOS binary is checksummed and attested but not yet notarized. The <a href="https://github.com/dmarzzz/shade-tree-node/blob/main/rust/INSTALL.md">Rust installation guide</a> lists published targets, manual checksum and attestation verification, and source builds.</p>
+        <p>Intel macOS has no prebuilt live tunnel in v0.4.1. The macOS binary is checksummed and attested but not yet notarized. The <a href="https://github.com/dmarzzz/shade-tree-node/blob/main/rust/INSTALL.md">Rust installation guide</a> lists published targets, manual checksum and attestation verification, and source builds.</p>
       </section>
 
       <section class="guide-step" aria-labelledby="agent-profile">

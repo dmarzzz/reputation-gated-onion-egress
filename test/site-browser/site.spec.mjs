@@ -29,7 +29,7 @@ test("homepage remains usable, quiet, and accessible", async ({ page }) => {
   );
   expect(hasHorizontalOverflow).toBe(false);
 
-  const installCopy = page.getByRole("button", { name: "Copy v0.4.0 live binary installation command" });
+  const installCopy = page.getByRole("button", { name: "Copy v0.4.1 live binary installation command" });
   await installCopy.click();
   await expect(installCopy).toHaveText("copied");
 
