@@ -441,10 +441,13 @@ slash, stake lifecycle) gets negative and concurrent cases, not just a positive 
   target-architecture runner, with cargo-zigbuild only for the Linux musl libc/linker boundary.
   Every binary is checksummed, gets an SPDX SBOM plus provenance/SBOM attestations, and the live
   jobs execute `shade-tree --help` to require `proxy-token`, `enroll`, `proxy`, and `run` before packaging.
+  Release hardening added 2026-09-01 makes future tags fail unless `vTAG` exactly matches
+  `package.json` and all Rust crate versions and the tagged commit is contained in `origin/main`;
+  publication uses the matching validated `CHANGELOG.md` section instead of an empty body.
   macOS remains explicitly non-notarized because no Apple Developer ID/notarization credentials
   are configured. *Accept:* a successful v0.4.0 tag workflow produces a standalone checked binary
   that runs on a clean agent box with no Node.js or system Tor daemon.
-- [ ] **T-RUST-5 (P2) Reusable in-process Rust client.** Keep the live Rust CONNECT Proxy as the
+- [x] **T-RUST-5 (P2) Reusable in-process Rust client.** Keep the live Rust CONNECT Proxy as the
   supported agent boundary while exposing the live lifecycle through the non-crates.io
   `shade-tree-egress` workspace crate.
   - [x] `Client`, `ConnectRequest`, `ProofRequest`, `SlotPolicy`, `Connected`, and `Gateway` form the
@@ -461,7 +464,12 @@ slash, stake lifecycle) gets negative and concurrent cases, not just a positive 
     embedded-Arti Proxy, requires two gateway acceptances, and asserts one successful Arti bootstrap.
   - [x] The Proxy requires local Basic authentication, bounds workers and queued admissions before
     slot allocation, and applies deadlines to gateway acknowledgement and bootnode HTTP I/O.
-  - [ ] Dispatch that harness against the pushed v0.4.0 release commit and keep it green.
+  - [x] Release-commit gate closed 2026-09-01: the real Hermes/embedded-Arti harness passed
+    locally with the post-release relay-close/harness fixes, and the pre-fix v0.4.0
+    commit `db074e4` independently passed remotely in
+    [GitHub Actions run 33576017408](https://github.com/dmarzzz/shade-tree-node/actions/runs/33576017408).
+    This closes the client lifecycle acceptance gate; it does not change the untrusted-testnet,
+    unaudited research status or the production ceremony requirement.
   Public FFI remains out of scope. Full architecture and evidence: `docs/ROADMAP.md` §2.6.
 - [x] **T-RUST-6 (P1) npm-free agent front door.** The live Rust CLI now separates local
   identity work from Grove admission: `enroll` generates a new owner-only identity and prints only

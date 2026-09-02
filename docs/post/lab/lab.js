@@ -1,4 +1,4 @@
-/* global document, fetch, TextDecoder, window */
+/* global document, fetch, navigator, TextDecoder, window */
 
 const stages = ["discover", "select", "prove", "dial", "gate", "egress"];
 const phaseToStage = { canopy: "discover", select: "select", prove: "prove", dial: "dial", gate: "gate", egress: "egress" };
@@ -23,6 +23,10 @@ const responseStrip = document.querySelector("[data-response-strip]");
 const responseCode = document.querySelector("[data-response-code]");
 const responseAnswer = document.querySelector("[data-response-answer]");
 const responseTime = document.querySelector("[data-response-time]");
+const nextActions = document.querySelector("[data-lab-next]");
+const shareButton = document.querySelector("[data-share-lab]");
+const shareStatus = document.querySelector("[data-share-status]");
+const labShareUrl = "https://shade-tree-node.vercel.app/lab/";
 let currentStage = null;
 let running = false;
 let cooldownTimer = null;
@@ -60,11 +64,12 @@ function reset() {
   document.querySelector("[data-slot]").textContent = "—";
   document.querySelector("[data-epoch]").textContent = "—";
   document.querySelectorAll("[data-proof]").forEach((element) => { element.textContent = "—"; element.removeAttribute("title"); });
-  for (const section of ["a", "b", "c"]) document.querySelector(`[data-proof-panel="${section}"]`).replaceChildren();
+  for (const section of ["a", "b", "c"]) document.querySelector(`[data-proof-panel="${section}"] dl`).replaceChildren();
   delete responseStrip.dataset.state;
   responseCode.textContent = "—";
   responseAnswer.textContent = "Request in progress";
   responseTime.textContent = "—";
+  nextActions.hidden = true;
 }
 
 function setExact(element, value) {
@@ -86,7 +91,7 @@ function proofRow(label, value) {
 }
 
 function renderPoint(section, point) {
-  const panel = document.querySelector(`[data-proof-panel="${section}"]`);
+  const panel = document.querySelector(`[data-proof-panel="${section}"] dl`);
   const values = section === "b"
     ? [
         ["b 0,0", point?.[0]?.[0]], ["b 0,1", point?.[0]?.[1]],
@@ -148,6 +153,7 @@ function handleDone(result) {
   responseCode.textContent = String(result.status ?? "200");
   responseAnswer.textContent = result.answer || "Response received";
   responseTime.textContent = Number.isFinite(result.durationMs) ? `${(result.durationMs / 1000).toFixed(1)} s` : "complete";
+  nextActions.hidden = false;
 }
 
 function handleFailed(result) {
@@ -249,7 +255,58 @@ for (const tab of document.querySelectorAll("[data-proof-tab]")) {
     document.querySelectorAll("[data-proof-tab]").forEach((button) => button.setAttribute("aria-selected", String(button === tab)));
     document.querySelectorAll("[data-proof-panel]").forEach((panel) => { panel.hidden = panel.dataset.proofPanel !== section; });
   });
+  tab.addEventListener("keydown", (event) => {
+    if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+    const tabs = [...document.querySelectorAll("[data-proof-tab]")];
+    const direction = event.key === "ArrowRight" ? 1 : -1;
+    tabs[(tabs.indexOf(tab) + direction + tabs.length) % tabs.length].click();
+    document.querySelector("[data-proof-tab][aria-selected=\"true\"]")?.focus();
+    event.preventDefault();
+  });
 }
+
+shareButton.addEventListener("click", async () => {
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: "Live Protocol Lab · Shade Tree Grove",
+        text: "One live Shade Tree request, with every routing and proof step visible.",
+        url: labShareUrl,
+      });
+      shareStatus.textContent = "Lab link shared.";
+      return;
+    } catch (error) {
+      if (error?.name === "AbortError") return;
+    }
+  }
+
+  const idleLabel = shareButton.textContent;
+  let copied = false;
+  try {
+    await navigator.clipboard.writeText(labShareUrl);
+    copied = true;
+  } catch {
+    const helper = document.createElement("textarea");
+    helper.value = labShareUrl;
+    helper.readOnly = true;
+    helper.style.position = "fixed";
+    helper.style.left = "-9999px";
+    document.body.append(helper);
+    try {
+      helper.select();
+      copied = Boolean(document.execCommand?.("copy"));
+    } finally {
+      helper.remove();
+    }
+  }
+
+  shareButton.textContent = copied ? "copied" : "copy unavailable";
+  shareStatus.textContent = copied ? "Lab link copied to clipboard." : `Copy this Lab link: ${labShareUrl}`;
+  window.setTimeout(() => {
+    shareButton.textContent = idleLabel;
+    shareStatus.textContent = "";
+  }, copied ? 1800 : 6000);
+});
 
 if (window.location.protocol === "file:") {
   runButton.disabled = true;

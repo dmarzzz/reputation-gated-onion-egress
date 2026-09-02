@@ -2128,24 +2128,40 @@ mod live {
                     )
                     .await
                     .map_err(|e| format!("write proxy response: {e}"))?;
-                if !connected.early_data.is_empty() {
+                let relay_result = async {
+                    if !connected.early_data.is_empty() {
+                        downstream
+                            .write_all(&connected.early_data)
+                            .await
+                            .map_err(|e| format!("write early tunnel bytes: {e}"))?;
+                    }
                     downstream
-                        .write_all(&connected.early_data)
+                        .flush()
                         .await
-                        .map_err(|e| format!("write early tunnel bytes: {e}"))?;
+                        .map_err(|e| format!("flush proxy response: {e}"))?;
+                    tokio::io::copy_bidirectional(&mut downstream, &mut tunnel)
+                        .await
+                        .map_err(|e| format!("relay proxy tunnel: {e}"))?;
+                    Ok::<(), String>(())
                 }
-                downstream
-                    .flush()
-                    .await
-                    .map_err(|e| format!("flush proxy response: {e}"))?;
-                tokio::io::copy_bidirectional(&mut downstream, &mut tunnel)
-                    .await
-                    .map_err(|e| format!("relay proxy tunnel: {e}"))?;
-                Ok::<(), String>(())
+                .await;
+                Ok::<Option<String>, String>(relay_result.err())
             });
-            if let Err(e) = result {
-                eprintln!("proxy: accepted tunnel relay ended with error: {e}");
-                return ExitCode::from(3);
+            match result {
+                Err(e) => {
+                    eprintln!("proxy: tunnel setup failed before CONNECT acceptance: {e}");
+                    return ExitCode::from(3);
+                }
+                Ok(Some(e)) => {
+                    // The gateway accepted the proof and the Proxy sent 200 Connection
+                    // Established. A later relay error (including a benign platform-specific
+                    // ENOTCONN while both peers close) can only terminate that established
+                    // tunnel; it is too late to turn the exchange back into an HTTP 502.
+                    // Report the close, but finish this accepted request normally. This also
+                    // matches the one-shot relay path below.
+                    eprintln!("proxy: accepted tunnel relay ended with error: {e}");
+                }
+                Ok(None) => {}
             }
         } else if relay == RelayMode::None {
             println!("ok");

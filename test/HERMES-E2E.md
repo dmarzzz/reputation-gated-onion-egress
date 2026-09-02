@@ -8,13 +8,20 @@ public HTTPS request with its terminal tool. It then makes a second scoped
 request through the same Proxy. System Tor is present only to publish the temporary server-side onion;
 the Proxy does not use its SOCKS port.
 
-A pass requires two independent observations:
+A pass requires all of these independent observations:
 
 1. Hermes reports `HERMES_SHADE_TREE_OK` with the HTTPS response.
-2. The ephemeral Shade Tree node exposes at least two
+2. The node pass counter advances during that same Hermes attempt, so a tool
+   result that bypassed or outlived the scoped Proxy cannot satisfy the test.
+3. The ephemeral Shade Tree node exposes at least two
    `shade_tree_gateway_tunnels_total{result="pass"}` tunnels.
-3. The Proxy records exactly one completed embedded-Arti bootstrap across both
+4. The Proxy records exactly one completed embedded-Arti bootstrap across both
    tunnels.
+
+Fresh onion descriptors are intentionally unreliable for a short window. The
+harness gives each of the two required requests three bounded attempts through
+the same long-lived Proxy (`HERMES_E2E_RUN_ATTEMPTS` overrides this), while
+crash-safe slot allocation ensures a failed attempt never reuses a nullifier.
 
 The model endpoint may bypass the Grove. This is intentional for a local model
 such as Ollama: the assertion is about the agent's public tool traffic. Loopback

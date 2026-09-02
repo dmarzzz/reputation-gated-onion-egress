@@ -30,6 +30,8 @@ assert.match(harness, /"\$RUST_SHADE_TREE" proxy/, "Hermes uses the Rust CONNECT
 assert.match(harness, /--onion "\$\{ONION\}:80"/, "the Rust Proxy dials the ephemeral onion");
 assert.match(harness, /--identity "\$IDENTITY"/, "the Rust Proxy receives the ephemeral identity file");
 assert.match(harness, /--SocksPort 0/, "system Tor publishes only the server-side onion");
+assert.match(harness, /HERMES_E2E_RUN_ATTEMPTS:-3/, "ephemeral onion requests get bounded retries");
+assert.match(harness, /gateway_pass_count/, "each successful child request is corroborated immediately by the node metric");
 assert.doesNotMatch(harness, /client\/shim\.mjs/, "the recurring path does not fall back to the JS/SOCKS Proxy");
 assert.doesNotMatch(harness, /SHADE_TREE_TOR_PORT/, "the client side has no system Tor or SOCKS dependency");
 assert.match(guide, /embedded Arti/, "the operator guide names the tested client transport");

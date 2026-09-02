@@ -59,56 +59,63 @@
   <main id="guide" class="guide-main">
     <header class="guide-intro">
       <h1>Add Shade Tree Grove to an agent.</h1>
-      <p>Run one local Proxy, then give its route to one agent process.</p>
+      <p>Install one verified Rust binary, start its embedded-Arti Proxy, then give that route to one agent process.</p>
+      <p class="guide-status"><strong>Research preview.</strong> v0.4.0 is the first binary agent distribution. There is no repo-maintained public v4 access profile; an operator must admit your leaf and supply the matching discovery values.</p>
     </header>
 
     <div class="guide-steps">
       <section class="guide-step" aria-labelledby="agent-install">
-        <h2 id="agent-install">1. Install</h2>
-        <p>Requires Node.js 20 or newer, npm, and a local Tor SOCKS port.</p>
-        <div class="command" aria-label="Install the Shade Tree Grove agent CLI">
-          <code>npm install --global git+https://github.com/dmarzzz/shade-tree-node.git</code>
-          <button class="copy-command" type="button" data-copy="npm install --global git+https://github.com/dmarzzz/shade-tree-node.git" aria-label="Copy agent installation command">copy</button>
+        <h2 id="agent-install">1. Download and verify</h2>
+        <p>The installer detects the platform, downloads the matching v0.4.0 <code>-live</code> binary and checksum, verifies both digest and filename, and installs into <code>~/.local/bin</code>. The binary includes the Proxy, RLN prover, and Arti; the agent machine needs neither Node.js nor a system Tor daemon.</p>
+        <div class="command" aria-label="Install the Shade Tree Grove v0.4.0 live binary">
+          <code>curl -q -fsSL --proto '=https' --proto-redir '=https' \<br>&nbsp;&nbsp;https://raw.githubusercontent.com/dmarzzz/shade-tree-node/main/scripts/install.sh \<br>&nbsp;&nbsp;| SHADE_TREE_VERSION=v0.4.0 sh<br>shade-tree --version</code>
+          <button class="copy-command" type="button" data-copy="curl -q -fsSL --proto '=https' --proto-redir '=https' \&#10;  https://raw.githubusercontent.com/dmarzzz/shade-tree-node/main/scripts/install.sh \&#10;  | SHADE_TREE_VERSION=v0.4.0 sh&#10;shade-tree --version" aria-label="Copy v0.4.0 live binary installation commands">copy</button>
         </div>
-        <p>This installs the current research preview from GitHub. It is not an npm registry release.</p>
+        <p>Intel macOS has no prebuilt live tunnel in v0.4.0. The macOS binary is checksummed and attested but not yet notarized. The <a href="https://github.com/dmarzzz/shade-tree-node/blob/main/rust/INSTALL.md">Rust installation guide</a> lists published targets, manual checksum and attestation verification, and source builds.</p>
       </section>
 
       <section class="guide-step" aria-labelledby="agent-profile">
-        <h2 id="agent-profile">2. Get an access profile</h2>
-        <p>A Grove operator supplies the current member secret or enrollment path, the Elder Tree onion, its raw 64-hex Canopy signer, your tier, and the member-set input for your admission path. There is no public v4 profile yet.</p>
+        <h2 id="agent-profile">2. Create an identity and get admitted</h2>
+        <p>Ask one Grove operator for the exact rate tier, an invited, staked, or paid admission path, the Elder Tree onion and its raw 64-hex Canopy signer, and the matching membership input.</p>
+        <div class="command" aria-label="Create a local Shade Tree identity">
+          <code>read -r SHADE_TREE_LIMIT<br>shade-tree enroll --limit "$SHADE_TREE_LIMIT" --out identity.json &gt; public-leaf.txt</code>
+          <button class="copy-command" type="button" data-copy="read -r SHADE_TREE_LIMIT&#10;shade-tree enroll --limit &quot;$SHADE_TREE_LIMIT&quot; --out identity.json &gt; public-leaf.txt" aria-label="Copy identity enrollment commands">copy</button>
+        </div>
+        <p><code>identity.json</code> contains the member secret and stays local. Send only <code>public-leaf.txt</code> through the operator's admission process. For invited access, wait for the operator to confirm that leaf in the root its nodes verify and save the matching <code>members.json</code>.</p>
+        <p>There is no public profile to substitute here. Do not use the retired Sepolia records or invent values. If you do not have an operator, ask for operator or onboarding help in <a href="https://github.com/dmarzzz/shade-tree-node/discussions">GitHub Discussions</a>; never post <code>identity.json</code>, a member secret, or a Proxy token.</p>
       </section>
 
       <section class="guide-step" aria-labelledby="agent-start">
-        <h2 id="agent-start">3. Start the local route</h2>
-        <p>First load the bearer secret into this shell. Paste it after running the command, then press Enter:</p>
-        <div class="command" aria-label="Load the Shade Tree member secret">
-          <code>read -s SHADE_TREE_SECRET &amp;&amp; export SHADE_TREE_SECRET</code>
-          <button class="copy-command" type="button" data-copy="read -s SHADE_TREE_SECRET &amp;&amp; export SHADE_TREE_SECRET" aria-label="Copy secret prompt command">copy</button>
+        <h2 id="agent-start">3. Start the embedded-Arti Proxy</h2>
+        <p>Create an unpredictable Proxy token in the terminal that will run the Proxy:</p>
+        <div class="command" aria-label="Create and load the local Proxy token">
+          <code>(umask 077; set -C; shade-tree proxy-token &gt; proxy-token.txt)<br>IFS= read -r SHADE_TREE_PROXY_TOKEN &lt; proxy-token.txt<br>export SHADE_TREE_PROXY_TOKEN</code>
+          <button class="copy-command" type="button" data-copy="(umask 077; set -C; shade-tree proxy-token &gt; proxy-token.txt)&#10;IFS= read -r SHADE_TREE_PROXY_TOKEN &lt; proxy-token.txt&#10;export SHADE_TREE_PROXY_TOKEN" aria-label="Copy Proxy token commands">copy</button>
         </div>
-        <p>The secret is not echoed or placed in the Proxy's process arguments. For invited access, save the operator's member list as <code>members.json</code>, then start the Proxy with system Tor on port 9050:</p>
-        <div class="command" aria-label="Start the local Shade Tree Proxy">
-          <code>SHADE_TREE_MEMBERS_FILE=./members.json \<br>shade-tree proxy \<br>&nbsp;&nbsp;--bootnode &lt;elder.onion&gt; \<br>&nbsp;&nbsp;--dir-signer &lt;64-hex-canopy-signer&gt; \<br>&nbsp;&nbsp;--limit &lt;operator-tier&gt; \<br>&nbsp;&nbsp;--leaf-source invited \<br>&nbsp;&nbsp;--tor-port 9050</code>
-          <button class="copy-command" type="button" data-copy="SHADE_TREE_MEMBERS_FILE=./members.json \&#10;shade-tree proxy \&#10;  --bootnode &lt;elder.onion&gt; \&#10;  --dir-signer &lt;64-hex-canopy-signer&gt; \&#10;  --limit &lt;operator-tier&gt; \&#10;  --leaf-source invited \&#10;  --tor-port 9050" aria-label="Copy Proxy start command">copy</button>
+        <p>Then load the operator-supplied discovery pair and start invited access on loopback:</p>
+        <div class="command" aria-label="Start the local Shade Tree embedded-Arti Proxy">
+          <code>read -r SHADE_TREE_BOOTNODE_ONION<br>read -r SHADE_TREE_DIR_SIGNER<br>shade-tree proxy \<br>&nbsp;&nbsp;--bootnode-onion "$SHADE_TREE_BOOTNODE_ONION" \<br>&nbsp;&nbsp;--signer "$SHADE_TREE_DIR_SIGNER" \<br>&nbsp;&nbsp;--identity identity.json \<br>&nbsp;&nbsp;--members members.json \<br>&nbsp;&nbsp;--listen 127.0.0.1:8118</code>
+          <button class="copy-command" type="button" data-copy="read -r SHADE_TREE_BOOTNODE_ONION&#10;read -r SHADE_TREE_DIR_SIGNER&#10;shade-tree proxy \&#10;  --bootnode-onion &quot;$SHADE_TREE_BOOTNODE_ONION&quot; \&#10;  --signer &quot;$SHADE_TREE_DIR_SIGNER&quot; \&#10;  --identity identity.json \&#10;  --members members.json \&#10;  --listen 127.0.0.1:8118" aria-label="Copy embedded-Arti Proxy start commands">copy</button>
         </div>
-        <p>Tor Browser usually listens on 9150. Staked and paid profiles use the contract and RPC values supplied by the same operator.</p>
+        <p>The signer and Elder onion are one trust-pinned pair; take both from the same operator. Staked and paid profiles use that operator's contract and RPC values instead of <code>members.json</code>. Keep the token file only for this running Proxy.</p>
       </section>
 
       <section class="guide-step" aria-labelledby="agent-run">
         <h2 id="agent-run">4. Launch the agent</h2>
         <div class="command" aria-label="Run one agent with Shade Tree Grove routing">
-          <code>shade-tree run -- your-agent</code>
-          <button class="copy-command" type="button" data-copy="shade-tree run -- your-agent" aria-label="Copy agent launch command">copy</button>
+          <code>IFS= read -r SHADE_TREE_PROXY_TOKEN &lt; proxy-token.txt<br>export SHADE_TREE_PROXY_TOKEN<br>shade-tree run -- your-agent</code>
+          <button class="copy-command" type="button" data-copy="IFS= read -r SHADE_TREE_PROXY_TOKEN &lt; proxy-token.txt&#10;export SHADE_TREE_PROXY_TOKEN&#10;shade-tree run -- your-agent" aria-label="Copy agent launch commands">copy</button>
         </div>
-        <p>The wrapper gives proxy variables only to its child. For Hermes, replace <code>your-agent</code> with <code>hermes</code>. Software that ignores proxy variables can use <code>http://127.0.0.1:8888</code> directly.</p>
+        <p>Run this in a second terminal. The wrapper authenticates the Proxy before launch and gives proxy variables only to its child. For Hermes, replace <code>your-agent</code> with <code>hermes</code>. Software that ignores proxy variables must be pointed at the authenticated URL documented in the full guide.</p>
       </section>
 
       <section class="guide-step guide-note" aria-labelledby="agent-boundary">
         <h2 id="agent-boundary">Current boundary</h2>
-        <p>The Proxy accepts HTTP CONNECT and the node permits target port 443. TLS stays between the agent and destination. The serving node still sees the target hostname, timing, lifetime, and traffic volume.</p>
+        <p>The Proxy accepts HTTP CONNECT and the node permits target port 443. TLS stays between the agent and destination. The serving node still sees the target hostname, timing, lifetime, and traffic volume. This research preview has not had the trusted setup and independent audit required for a production release.</p>
         <div class="guide-links">
           <a class="solid-action" href="https://github.com/dmarzzz/shade-tree-node/blob/main/docs/AGENT.md">Full agent guide</a>
-          <a class="line-action" href="https://github.com/dmarzzz/shade-tree-node/blob/main/docs/ADAPTERS.md">Adapters</a>
-          <a class="line-action" href="https://github.com/dmarzzz/shade-tree-node/blob/main/docs/SDK.md">JavaScript SDK</a>
+          <a class="line-action" href="https://github.com/dmarzzz/shade-tree-node/blob/main/rust/INSTALL.md">Rust install details</a>
+          <a class="line-action" href="https://github.com/dmarzzz/shade-tree-node/discussions">Ask for help</a>
         </div>
       </section>
     </div>

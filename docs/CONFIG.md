@@ -168,6 +168,25 @@ Read by `payments/registrar.mjs` (the operator's HTTP-402 service that sells mem
 | `SHADE_TREE_NO_PROXY` | (unset) | Extra comma-separated agent-local hosts appended to the fixed loopback bypass list. `*` is rejected because it would bypass Shade Tree. | `shade-tree run` | `--no-proxy` |
 | `SHADE_TREE_PROXY_CHECK_TIMEOUT_MS` | `2000` | TCP preflight deadline before the child is started; integer 1..30000 milliseconds. | `shade-tree run` | `--check-timeout-ms` |
 
+## Binary installer (`scripts/install.sh`)
+
+These variables are read only by the POSIX one-line installer, not by a running
+`shade-tree` process. Network release bases must use HTTPS; `file://` and
+loopback HTTP support exists only for its offline selftest.
+
+| Env var | Default | Controls |
+|---|---|---|
+| `SHADE_TREE_VERSION` | latest release | Pin a release tag, for example `v0.4.0` or `0.4.0`. |
+| `SHADE_TREE_LIVE` | `auto` | `auto` probes the selected release for `-live` and falls back only when its checksum or binary is absent; `1` requires live; `0` requests verifier-only. |
+| `SHADE_TREE_INSTALL_DIR` | `$HOME/.local/bin` | User-writable destination; the installer creates it without sudo. |
+| `SHADE_TREE_FORCE` | `0` | `1` permits replacing a destination symlink to a file; unsafe types and directory symlinks remain refused. |
+| `SHADE_TREE_TARGET` | detected | Exact published Rust target triple override. |
+| `SHADE_TREE_LIBC` | detected | Linux-only `gnu` or `musl` override when libc cannot be identified. |
+| `SHADE_TREE_RELEASE_BASE` | GitHub Releases | Alternate HTTPS release root; local schemes are test-only. |
+
+On macOS, the installer checks `sysctl.proc_translated` so an Apple Silicon
+machine running an x86_64 shell under Rosetta receives the native arm64 asset.
+
 ## Deploy (`bootnode/deploy/bootstrap.sh`)
 
 Read only by the one-command droplet bring-up (not by any `shade-tree` process). They shape the torrc include + systemd units the script writes; the units then carry the runtime `SHADE_TREE_*` values above as `Environment=` lines. Full table + rationale: `bootnode/deploy/README.md` "Tunables".

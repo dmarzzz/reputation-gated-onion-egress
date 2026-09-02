@@ -15,6 +15,7 @@
   <link rel="icon" href="../favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="../site.css">
   <link rel="stylesheet" href="./lab.css">
+  <script type="module" src="../site.js"></script>
   <script type="module" src="./lab.js"></script>
   <title>Live Protocol Lab · Shade Tree Grove</title>
 </head>
@@ -124,16 +125,18 @@
         </div>
 
         <div class="proof-values">
-          <dl id="proof-public" role="tabpanel" aria-labelledby="tab-public" data-proof-panel="public">
-            <div><dt>root</dt><dd><code data-proof="pub.root">—</code></dd></div>
-            <div><dt>nullifier</dt><dd><code data-proof="pub.nullifier">—</code></dd></div>
-            <div><dt>x</dt><dd><code data-proof="pub.x">—</code></dd></div>
-            <div><dt>y</dt><dd><code data-proof="pub.y">—</code></dd></div>
-            <div><dt>external</dt><dd><code data-proof="pub.externalNullifier">—</code></dd></div>
-          </dl>
-          <dl id="proof-a" role="tabpanel" aria-labelledby="tab-a" data-proof-panel="a" hidden></dl>
-          <dl id="proof-b" role="tabpanel" aria-labelledby="tab-b" data-proof-panel="b" hidden></dl>
-          <dl id="proof-c" role="tabpanel" aria-labelledby="tab-c" data-proof-panel="c" hidden></dl>
+          <div id="proof-public" role="tabpanel" aria-labelledby="tab-public" data-proof-panel="public">
+            <dl>
+              <div><dt>root</dt><dd><code data-proof="pub.root">—</code></dd></div>
+              <div><dt>nullifier</dt><dd><code data-proof="pub.nullifier">—</code></dd></div>
+              <div><dt>x</dt><dd><code data-proof="pub.x">—</code></dd></div>
+              <div><dt>y</dt><dd><code data-proof="pub.y">—</code></dd></div>
+              <div><dt>external</dt><dd><code data-proof="pub.externalNullifier">—</code></dd></div>
+            </dl>
+          </div>
+          <div id="proof-a" role="tabpanel" aria-labelledby="tab-a" data-proof-panel="a" hidden><dl></dl></div>
+          <div id="proof-b" role="tabpanel" aria-labelledby="tab-b" data-proof-panel="b" hidden><dl></dl></div>
+          <div id="proof-c" role="tabpanel" aria-labelledby="tab-c" data-proof-panel="c" hidden><dl></dl></div>
         </div>
 
         <p class="proof-note">These are the public signals and curve points the selected Shade Tree node actually verified. Your identity and secret are absent.</p>
@@ -144,6 +147,13 @@
       <div><span>HTTPS response</span><strong data-response-code>—</strong></div>
       <p data-response-answer>No request sent yet</p>
       <div class="response-time"><span>End to end</span><strong data-response-time>—</strong></div>
+      <nav class="lab-next" data-lab-next aria-label="Continue after this Lab run" hidden>
+        <button type="button" data-copy="Set up Shade Tree Grove for this agent by following https://github.com/dmarzzz/shade-tree-node/blob/main/docs/AGENT.md. Install and verify the checksummed v0.4.0 Rust -live binary; it includes embedded Arti. This is a research preview with no public access profile, so use only operator-supplied v4 values and members.json. Never invent values or use retired Sepolia records. Keep identity.json and proxy-token.txt local, share only public-leaf.txt for admission, then launch this agent with shade-tree run -- &lt;agent-command&gt;. If operator details are missing, ask me to obtain them through GitHub Discussions." data-copy-target="lab-agent-brief" data-copy-noun="Agent brief">Give this to my agent</button>
+        <a href="../operator/index.html">Grow the Grove</a>
+        <button type="button" data-share-lab>Share / copy</button>
+      </nav>
+      <code id="lab-agent-brief" class="copy-fallback" hidden>Set up Shade Tree Grove for this agent by following https://github.com/dmarzzz/shade-tree-node/blob/main/docs/AGENT.md. Install and verify the checksummed v0.4.0 Rust -live binary; it includes embedded Arti. This is a research preview with no public access profile, so use only operator-supplied v4 values and members.json. Never invent values or use retired Sepolia records. Keep identity.json and proxy-token.txt local, share only public-leaf.txt for admission, then launch this agent with shade-tree run -- &lt;agent-command&gt;. If operator details are missing, ask me to obtain them through GitHub Discussions.</code>
+      <span class="sr-only" role="status" aria-live="polite" data-share-status></span>
     </footer>
   </main>
 </body>

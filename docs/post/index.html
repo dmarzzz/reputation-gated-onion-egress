@@ -94,22 +94,23 @@
               <li>
                 <span class="step-num" aria-hidden="true">01</span>
                 <div class="step-body">
-                  <p class="step-label">Install the CLI</p>
+                  <p class="step-label">Install the live Rust binary</p>
                   <div class="command agent-install" aria-label="Install Shade Tree Grove for an agent">
-                    <code tabindex="0" aria-label="npm installation command">npm install --global git+https://github.com/dmarzzz/shade-tree-node.git</code>
-                    <button class="copy-command" type="button" data-copy="npm install --global git+https://github.com/dmarzzz/shade-tree-node.git" aria-label="Copy npm installation command">copy install</button>
+                    <code tabindex="0" aria-label="v0.4.0 live binary installation command">curl -q -fsSL --proto '=https' --proto-redir '=https' https://raw.githubusercontent.com/dmarzzz/shade-tree-node/main/scripts/install.sh | SHADE_TREE_VERSION=v0.4.0 sh</code>
+                    <button class="copy-command" type="button" data-copy="curl -q -fsSL --proto '=https' --proto-redir '=https' https://raw.githubusercontent.com/dmarzzz/shade-tree-node/main/scripts/install.sh | SHADE_TREE_VERSION=v0.4.0 sh" aria-label="Copy v0.4.0 live binary installation command">copy install</button>
                   </div>
+                  <p class="step-note">The installer selects a published <code>-live</code> asset and verifies its checksum. The binary embeds Arti; it needs neither Node.js nor system Tor. See the <a href="./agent/">agent guide</a> for supported platforms and manual verification.</p>
                 </div>
               </li>
               <li>
                 <span class="step-num" aria-hidden="true">02</span>
                 <div class="step-body">
                   <p class="step-label">Agent setup</p>
-                  <button class="copy-command task-copy" type="button" data-copy="Add Shade Tree Grove to this agent by following https://github.com/dmarzzz/shade-tree-node/blob/main/docs/AGENT.md. Install the CLI with npm install --global git+https://github.com/dmarzzz/shade-tree-node.git, configure only an operator-supplied v4 access profile, then launch this agent with shade-tree run -- &lt;agent-command&gt;. Do not use the retired Sepolia records or invent profile values. If anything is missing, ask me for the public profile values and have me load the member secret through the guide's hidden prompt. Never put the secret in arguments, logs, or source." data-copy-target="agent-setup-task" data-copy-noun="Setup brief" aria-label="Copy Shade Tree Grove setup brief for an AI agent">copy agent brief</button>
+                  <button class="copy-command task-copy" type="button" data-copy="Set up Shade Tree Grove for this agent by following https://github.com/dmarzzz/shade-tree-node/blob/main/docs/AGENT.md. Install and verify the v0.4.0 Rust -live binary; embedded Arti needs neither Node.js nor system Tor. Create identity.json locally and share only public-leaf.txt for admission. Use only operator-supplied v4 values and members.json. No public profile exists: never use retired Sepolia records or invent values. Keep identity.json and proxy-token.txt private, then launch with shade-tree run -- &lt;agent-command&gt;. If access details are missing, ask me to contact the operator or GitHub Discussions." data-copy-target="agent-setup-task" data-copy-noun="Setup brief" aria-label="Copy Shade Tree Grove setup brief for an AI agent">copy agent brief</button>
                 </div>
               </li>
             </ol>
-            <code id="agent-setup-task" class="copy-fallback" hidden>Add Shade Tree Grove to this agent by following https://github.com/dmarzzz/shade-tree-node/blob/main/docs/AGENT.md. Install the CLI with npm install --global git+https://github.com/dmarzzz/shade-tree-node.git, configure only an operator-supplied v4 access profile, then launch this agent with shade-tree run -- &lt;agent-command&gt;. Do not use the retired Sepolia records or invent profile values. If anything is missing, ask me for the public profile values and have me load the member secret through the guide's hidden prompt. Never put the secret in arguments, logs, or source.</code>
+            <code id="agent-setup-task" class="copy-fallback" hidden>Set up Shade Tree Grove for this agent by following https://github.com/dmarzzz/shade-tree-node/blob/main/docs/AGENT.md. Install and verify the v0.4.0 Rust -live binary; embedded Arti needs neither Node.js nor system Tor. Create identity.json locally and share only public-leaf.txt for admission. Use only operator-supplied v4 values and members.json. No public profile exists: never use retired Sepolia records or invent values. Keep identity.json and proxy-token.txt private, then launch with shade-tree run -- &lt;agent-command&gt;. If access details are missing, ask me to contact the operator or GitHub Discussions.</code>
           </div>
         </article>
 

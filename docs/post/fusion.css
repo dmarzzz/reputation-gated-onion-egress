@@ -137,6 +137,13 @@
   color: var(--leaf);
 }
 
+.glyph-grove .step-note a {
+  color: var(--lichen);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 0.18em;
+}
+
 .glyph-grove .step-body > .task-copy {
   min-height: 2.6rem;
   padding: 0.6rem 1.15rem;

@@ -57,12 +57,20 @@ jobs:
     uses: ./.github/workflows/rust-verify.yml
 
   set-version:
-    name: resolve version
+    name: validate release metadata
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     outputs:
       version: ${{ steps.v.outputs.version }}
     steps:
+      # Full history is required for the tag -> origin/main ancestry check. checkout
+      # fetch-depth: 0 fetches every branch and tag, including origin/main.
+      - name: Check out tagged commit with full history
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
       - id: v
         shell: bash
         run: |
@@ -71,6 +79,33 @@ jobs:
           else
             echo "version=dev-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Install Node for the release policy check
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - name: Require matching manifests, changelog, and protected-main ancestry
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: >-
+          node scripts/release-check.mjs
+          --tag "$RELEASE_TAG"
+          --commit HEAD
+          --main-ref origin/main
+          --notes-output release-notes.md
+
+      - name: Stage validated release notes
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-notes-${{ steps.v.outputs.version }}
+          path: release-notes.md
+          if-no-files-found: error
 
   # ------------------------------------------------------------------ artifact lock gate
   lock-check:
@@ -334,7 +369,7 @@ jobs:
   # after every default and live matrix entry has succeeded.
   publish:
     name: publish release assets
-    needs: [default, live]
+    needs: [set-version, default, live]
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -342,6 +377,12 @@ jobs:
       actions: read # download artifacts created by this workflow run
       contents: write # attach assets to the tag's GitHub Release
     steps:
+      - name: Download validated release notes
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-notes-${{ needs.set-version.outputs.version }}
+          path: release-metadata
+
       - name: Download packaged artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -349,7 +390,28 @@ jobs:
           path: dist
           merge-multiple: true
 
+      - name: Revalidate the remote tag before publication
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_COMMIT: ${{ github.sha }}
+        run: |
+          object_type="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" --jq .object.type)"
+          object_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" --jq .object.sha)"
+          while [[ "$object_type" == tag ]]; do
+            object_type="$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${object_sha}" --jq .object.type)"
+            object_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${object_sha}" --jq .object.sha)"
+          done
+          if [[ "$object_type" != commit || "$object_sha" != "$RELEASE_COMMIT" ]]; then
+            echo "release tag moved or no longer resolves to the validated event commit" >&2
+            echo "expected commit: $RELEASE_COMMIT" >&2
+            echo "current object: $object_type $object_sha" >&2
+            exit 1
+          fi
+
       - name: Attach to Release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
+          body_path: release-metadata/release-notes.md
           files: dist/*

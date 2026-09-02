@@ -45,23 +45,24 @@ Grove operation, the JavaScript SDK, and repository development.
 
 ## Agent developers
 
-Start with the complete [no-Node agent guide](docs/AGENT.md). Download the
-`-live` asset and matching `.sha256` for your platform from the
-[latest release](https://github.com/dmarzzz/shade-tree-node/releases/latest),
-verify it, and install it as `shade-tree`. For example, on Linux:
+Start with the complete [no-Node agent guide](docs/AGENT.md). The installer
+detects the platform, downloads the matching checksum, verifies both its digest
+and filename, and installs without sudo into `~/.local/bin`:
 
-```bash
-VERSION=0.4.0
-TARGET=x86_64-unknown-linux-gnu
-ASSET="shade-tree-$VERSION-$TARGET-live"
-curl -LO "https://github.com/dmarzzz/shade-tree-node/releases/download/v$VERSION/$ASSET"
-curl -LO "https://github.com/dmarzzz/shade-tree-node/releases/download/v$VERSION/$ASSET.sha256"
-sha256sum -c "$ASSET.sha256"
-chmod +x "$ASSET"
-mkdir -p ~/.local/bin
-install -m 0755 "$ASSET" ~/.local/bin/shade-tree
+```sh
+curl -q -fsSL --proto '=https' --proto-redir '=https' \
+  https://raw.githubusercontent.com/dmarzzz/shade-tree-node/main/scripts/install.sh | sh
 shade-tree --version
 ```
+
+Automatic mode first tries the selected release's self-contained `-live` agent
+and falls back to its verifier-only binary only when that live asset is absent.
+On Apple Silicon it detects Rosetta shells and still selects the native arm64
+live build. Intel macOS has only the v0.4 verifier binary. Pin v0.4.0 with
+`... | SHADE_TREE_VERSION=v0.4.0 sh`, or read the
+[installer options and manual verification steps](rust/INSTALL.md). Checksums
+provide transfer integrity; GitHub attestations provide the stronger build
+provenance check.
 
 Ask a Grove operator for the exact tier and discovery values first. Create an
 owner-only identity locally, then submit only the printed public leaf through

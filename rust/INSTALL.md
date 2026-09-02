@@ -17,20 +17,69 @@ attestation, and SBOM attestation. The `-live` build embeds the repository's
 testnet RLN artifacts; review
 [`../circuits/rln/ARTIFACTS.md`](../circuits/rln/ARTIFACTS.md) before use.
 
-## Download and verify
+> [!WARNING]
+> v0.4 is an unaudited research preview built with testnet-only RLN setup
+> artifacts. Do not use it as a production anonymity or security boundary.
+
+## One-line install
+
+The POSIX `sh` installer detects the supported OS, CPU, and Linux libc; fetches
+the binary and its matching `.sha256`; verifies both the digest and filename;
+and installs atomically into a user-writable directory without sudo. Curl user
+configuration is disabled so a local `.curlrc` cannot weaken its HTTPS policy.
+
+```sh
+curl -q -fsSL --proto '=https' --proto-redir '=https' \
+  https://raw.githubusercontent.com/dmarzzz/shade-tree-node/main/scripts/install.sh | sh
+```
+
+The default probes the selected release for its self-contained `-live` agent.
+Only a missing live checksum or binary triggers a clearly reported fallback to
+that same release's verifier-only binary; network, TLS, and integrity failures
+remain fail-closed. `SHADE_TREE_LIVE=1` disables fallback. On Apple Silicon the
+installer detects an x86_64 shell running under Rosetta and selects the native
+arm64 live asset. Intel macOS (`x86_64-apple-darwin`) has no v0.4 live asset.
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `SHADE_TREE_VERSION` | latest release | Pin a release, such as `v0.4.0` or `0.4.0` |
+| `SHADE_TREE_LIVE` | `auto` | `auto` probes live, falling back only when that release lacks it; `1` requires live; `0` installs verifier-only |
+| `SHADE_TREE_INSTALL_DIR` | `$HOME/.local/bin` | User-writable destination directory, created if missing |
+| `SHADE_TREE_FORCE` | `0` | `1` explicitly permits replacing a destination symlink to a file; directory links are always refused |
+| `SHADE_TREE_TARGET` | detected | Override with one of the exact published target triples above |
+| `SHADE_TREE_LIBC` | detected | Set `gnu` or `musl` only when Linux libc detection is unavailable |
+| `SHADE_TREE_RELEASE_BASE` | GitHub Releases | Alternate network bases must use HTTPS; local schemes exist only for the offline selftest |
+
+For example, pin the first official research preview while keeping automatic
+target selection:
+
+```sh
+curl -q -fsSL --proto '=https' --proto-redir '=https' \
+  https://raw.githubusercontent.com/dmarzzz/shade-tree-node/main/scripts/install.sh \
+  | SHADE_TREE_VERSION=v0.4.0 sh
+```
+
+The one-liner downloads code before you inspect it. To review it first, save it
+locally, read it, and run `sh install.sh`. Git Bash or MSYS2 is required for the
+installer on x86_64 Windows; PowerShell users can use the manual process below.
+
+## Manual download and verification
 
 Choose the `-live` asset for your platform from the
 [latest release](https://github.com/dmarzzz/shade-tree-node/releases/latest).
 Linux users can choose GNU for ordinary glibc distributions or musl for a
 statically linked libc target. This x86_64 GNU example installs v0.4.0; change
-`TARGET` to another published target from the table above when needed:
+`TARGET` to another published target from the table above when needed. `-q`
+must be curl's first option so user configuration cannot disable TLS checks:
 
 ```sh
 VERSION=0.4.0
 TARGET=x86_64-unknown-linux-gnu
 ASSET="shade-tree-$VERSION-$TARGET-live"
-curl -LO "https://github.com/dmarzzz/shade-tree-node/releases/download/v$VERSION/$ASSET"
-curl -LO "https://github.com/dmarzzz/shade-tree-node/releases/download/v$VERSION/$ASSET.sha256"
+curl -q -fLO --proto '=https' --proto-redir '=https' \
+  "https://github.com/dmarzzz/shade-tree-node/releases/download/v$VERSION/$ASSET"
+curl -q -fLO --proto '=https' --proto-redir '=https' \
+  "https://github.com/dmarzzz/shade-tree-node/releases/download/v$VERSION/$ASSET.sha256"
 sha256sum -c "$ASSET.sha256"
 chmod +x "$ASSET"
 mkdir -p "$HOME/.local/bin"
@@ -38,7 +87,17 @@ install -m 0755 "$ASSET" "$HOME/.local/bin/shade-tree"
 shade-tree --version
 ```
 
-On macOS, use `shasum -a 256 -c` instead of `sha256sum`. The project does not
+The checksum detects transfer corruption or mismatch, but does not establish
+publisher provenance when it arrives through the same channel. With the GitHub
+CLI installed, verify the repository-bound build attestation as the stronger
+provenance step:
+
+```sh
+gh attestation verify "$ASSET" --repo dmarzzz/shade-tree-node
+```
+
+On macOS, use `shasum -a 256 -c` instead of `sha256sum`. Only Apple Silicon has
+a published `-live` binary; Intel macOS is verifier-only. The project does not
 currently configure Apple Developer ID signing/notarization credentials, so
 the macOS asset is checksummed and attested but not notarized. After verifying
 the checksum, remove a Gatekeeper quarantine attribute if macOS added one:

@@ -687,6 +687,20 @@ img {
   font-size: clamp(1rem, 2vw, 1.2rem);
 }
 
+.guide-intro .guide-status {
+  max-width: 46rem;
+  padding: 1rem 1.1rem;
+  color: var(--muted);
+  background: rgba(16, 34, 25, 0.6);
+  border-left: 2px solid var(--pulse);
+  font-size: 0.9rem;
+}
+
+.guide-status strong {
+  color: var(--lichen);
+  font-weight: 650;
+}
+
 .guide-steps { border-top: 1px solid var(--line); }
 
 .guide-step {

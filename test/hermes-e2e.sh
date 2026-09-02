@@ -140,6 +140,7 @@ BOOTSTRAP_TIMEOUT_MS="${HERMES_E2E_BOOTSTRAP_TIMEOUT_MS:-180000}"
 REQUEST_URL="${HERMES_E2E_REQUEST_URL:-https://api.ipify.org?format=json}"
 EXTRA_NO_PROXY="${HERMES_E2E_NO_PROXY:-}"
 PROXY_TOKEN="${HERMES_E2E_PROXY_TOKEN:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}"
+RUN_ATTEMPTS="${HERMES_E2E_RUN_ATTEMPTS:-3}"
 export SHADE_TREE_PROXY_TOKEN="$PROXY_TOKEN"
 
 GW_PID=""
@@ -154,6 +155,16 @@ case "$REQUEST_URL" in
   https://* ) ;;
   * ) fail "HERMES_E2E_REQUEST_URL must be an https:// URL" ;;
 esac
+case "$RUN_ATTEMPTS" in
+  ''|*[!0-9]*|0 ) fail "HERMES_E2E_RUN_ATTEMPTS must be a positive integer" ;;
+esac
+[ "$RUN_ATTEMPTS" -le 4 ] || fail "HERMES_E2E_RUN_ATTEMPTS must be between 1 and 4"
+gateway_pass_count() {
+  curl --fail --silent --show-error --max-time 5 \
+    "http://127.0.0.1:${METRICS_PORT}/metrics" 2>/dev/null \
+    | sed -n 's/^shade_tree_gateway_tunnels_total{result="pass"} \([0-9][0-9]*\)$/\1/p' \
+    | tail -n 1 || true
+}
 cleanup() {
   local p
   for p in "$PROXY_PID" "$TOR_PID" "$GW_PID"; do
@@ -249,33 +260,64 @@ echo "== launch Hermes through shade-tree run =="
 mkdir -p "$WORK/hermes-cwd"
 export HERMES_E2E_PROMPT="$PROMPT"
 export HERMES_E2E_LOCAL_PROXY_PORT="$PROXY_PORT"
-response="$({
-  cd "$WORK/hermes-cwd"
-  run_args=(run --proxy "http://127.0.0.1:${PROXY_PORT}")
-  [ -n "$EXTRA_NO_PROXY" ] && run_args+=(--no-proxy "$EXTRA_NO_PROXY")
-  run_args+=(-- "$SELF" --hermes-child)
-  "$RUST_SHADE_TREE" "${run_args[@]}"
-} 2> >(tee "$WORK/hermes.stderr" >&2))" || {
+hermes_ok=0
+for attempt in $(seq 1 "$RUN_ATTEMPTS"); do
+  echo "--- Hermes tunnel attempt ${attempt}/${RUN_ATTEMPTS} ---"
+  passes_before="$(gateway_pass_count)"; passes_before="${passes_before:-0}"
+  set +e
+  response="$({
+    cd "$WORK/hermes-cwd"
+    run_args=(run --proxy "http://127.0.0.1:${PROXY_PORT}")
+    [ -n "$EXTRA_NO_PROXY" ] && run_args+=(--no-proxy "$EXTRA_NO_PROXY")
+    run_args+=(-- "$SELF" --hermes-child)
+    "$RUST_SHADE_TREE" "${run_args[@]}"
+  } 2> >(tee "$WORK/hermes.stderr" >&2))"
+  rc=$?
+  set -e
+  printf '%s\n' "$response"
+  passes_after="$(gateway_pass_count)"; passes_after="${passes_after:-0}"
+  if [ "$rc" -eq 0 ] && grep -q 'HERMES_SHADE_TREE_OK' <<< "$response" \
+    && [ "$passes_after" -gt "$passes_before" ]; then
+    hermes_ok=1
+    break
+  fi
+  echo "Hermes attempt ${attempt} did not produce both its marker and a new node pass"
+  [ "$attempt" -lt "$RUN_ATTEMPTS" ] && sleep 15
+done
+[ "$hermes_ok" = "1" ] || {
   cat "$WORK/proxy.log" >&2 || true
   cat "$WORK/gateway.log" >&2 || true
-  fail "Hermes process failed"
+  fail "Hermes did not produce both its success marker and a corroborating node pass"
 }
-printf '%s\n' "$response"
-
-grep -q 'HERMES_SHADE_TREE_OK' <<< "$response" || fail "Hermes did not return the success marker"
 
 echo "== open a second CONNECT through the same Rust Proxy/Arti client =="
-second_response="$({
-  cd "$WORK/hermes-cwd"
-  "$RUST_SHADE_TREE" run \
-    --proxy "http://127.0.0.1:${PROXY_PORT}" \
-    -- curl --fail --silent --show-error --max-time 90 "$REQUEST_URL"
-} 2> >(tee "$WORK/second.stderr" >&2))" || {
+second_ok=0
+for attempt in $(seq 1 "$RUN_ATTEMPTS"); do
+  echo "--- second tunnel attempt ${attempt}/${RUN_ATTEMPTS} ---"
+  passes_before_second="$(gateway_pass_count)"; passes_before_second="${passes_before_second:-0}"
+  set +e
+  second_response="$({
+    cd "$WORK/hermes-cwd"
+    "$RUST_SHADE_TREE" run \
+      --proxy "http://127.0.0.1:${PROXY_PORT}" \
+      -- curl --fail --silent --show-error --max-time 90 "$REQUEST_URL"
+  } 2> >(tee "$WORK/second.stderr" >&2))"
+  rc=$?
+  set -e
+  passes_after_second="$(gateway_pass_count)"; passes_after_second="${passes_after_second:-0}"
+  if [ "$rc" -eq 0 ] && grep -q '"ip"' <<< "$second_response" \
+    && [ "$passes_after_second" -gt "$passes_before_second" ]; then
+    second_ok=1
+    break
+  fi
+  echo "Second tunnel attempt ${attempt} did not produce both an IP response and a new node pass"
+  [ "$attempt" -lt "$RUN_ATTEMPTS" ] && sleep 15
+done
+[ "$second_ok" = "1" ] || {
   cat "$WORK/proxy.log" >&2 || true
   cat "$WORK/gateway.log" >&2 || true
   fail "second process-scoped request failed"
 }
-grep -q '"ip"' <<< "$second_response" || fail "second request did not return an ip field"
 
 metrics="$(curl --fail --silent --show-error --max-time 5 "http://127.0.0.1:${METRICS_PORT}/metrics")"
 grep -Eq '^shade_tree_gateway_tunnels_total\{result="pass"\} ([2-9]|[1-9][0-9]+)$' <<< "$metrics" || {

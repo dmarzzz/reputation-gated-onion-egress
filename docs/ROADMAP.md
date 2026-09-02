@@ -340,8 +340,12 @@ Acceptance evidence is intentionally split rather than overstated:
 - [x] The gated Hermes harness opens two CONNECT tunnels through Rust `run` and
   one long-lived embedded-Arti Proxy, requires two gateway acceptances, and
   asserts the Proxy reports exactly one successful Arti bootstrap.
-- [ ] Dispatch that real-Hermes/Arti harness against the pushed v0.4.0 release
-  commit and keep it green before treating the full T-RUST-5 gate as closed.
+- [x] Release-commit gate closed 2026-09-01: the real-Hermes/Arti harness passed
+  locally with the post-release relay-close/harness fixes, and the pre-fix v0.4.0
+  commit `db074e4` independently passed remotely in
+  [GitHub Actions run 33576017408](https://github.com/dmarzzz/shade-tree-node/actions/runs/33576017408).
+  T-RUST-5 is complete, without changing the unaudited, untrusted-testnet status
+  or the separate production trusted-setup gate.
 
 ---
 
