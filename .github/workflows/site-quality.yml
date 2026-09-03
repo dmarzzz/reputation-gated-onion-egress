@@ -13,17 +13,9 @@ on:
       - "scripts/serve-site.mjs"
       - "test/site.selftest.mjs"
       - "test/site-browser/**"
+  # The main-branch ruleset requires this check for every pull request. Keep
+  # the PR trigger unconditional so non-site changes cannot deadlock a merge.
   pull_request:
-    paths:
-      - ".github/workflows/site-quality.yml"
-      - ".lighthouserc.json"
-      - "docs/post/**"
-      - "package.json"
-      - "package-lock.json"
-      - "playwright.config.mjs"
-      - "scripts/serve-site.mjs"
-      - "test/site.selftest.mjs"
-      - "test/site-browser/**"
   workflow_dispatch:
 
 permissions:
