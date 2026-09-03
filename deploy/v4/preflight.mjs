@@ -109,6 +109,8 @@ export function validateDeploymentRecord(record, { requireLive = true, repoRoot 
       }
       for (const path of ["staked", "paid"]) if (roots[path] !== null) {
         if (!isObject(roots[path]) || !isEthAddress(roots[path].contract)) bad(`admission.roots.${path}.contract`, "must be a contract address or null");
+        if (roots[path].rpcUrl !== undefined && !safeRepository(roots[path].rpcUrl)) bad(`admission.roots.${path}.rpcUrl`, "must be a credential-free HTTPS URL when present");
+        if (roots[path].deployBlock !== undefined && (!Number.isInteger(roots[path].deployBlock) || roots[path].deployBlock < 0)) bad(`admission.roots.${path}.deployBlock`, "must be a non-negative integer when present");
       }
       if (Array.isArray(paths)) for (const path of paths) {
         const root = roots[path];

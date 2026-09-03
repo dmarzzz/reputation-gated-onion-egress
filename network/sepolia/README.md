@@ -14,7 +14,7 @@ This directory contains two deliberately separate generations:
 
 > **Live discovery and testnet staking.** The current v4 Elder onion and Canopy signer in
 > `deployment.json` are the bundled client discovery default. The same record publishes its explicit
-> staking set and `contracts.json` publishes the matching RPC and deploy block.
+> staking set, archival RPC, and deploy block.
 > Invited membership material remains private; a staked member self-enrolls with Sepolia test ETH
 > and supplies the
 > staking/RPC values explicitly because the retired legacy preset stays disabled.
@@ -44,8 +44,8 @@ Live integration (two tiers, on-chain root mode, tier-32 slash):
 
 Receipt bundle: [`rln-v4-broadcast.json`](rln-v4-broadcast.json). The retired network preset
 formerly resolved `SHADE_TREE_GROUP_CONTRACT` to this set. The current v4 research Grove now
-explicitly reuses it; use the Elder, signer, staking set, RPC, and deploy block named by
-`deployment.json` and this file rather than enabling the retired preset (`docs/CLI.md`).
+explicitly reuses it; use the Elder, signer, staking set, archival RPC, and deploy block named by
+`deployment.json` rather than enabling the retired preset (`docs/CLI.md`).
 
 **Superseded (history only, do not stake there):**
 
@@ -149,6 +149,6 @@ SHADE_TREE_SECRET="$SHADE_TREE_SECRET" shade-tree proxy --limit <operator-tier> 
 unset SHADE_TREE_SECRET
 ```
 
-For this v4 Grove, use the staked contract recorded in `deployment.json` with the RPC and deploy
-block from `contracts.json`; do not use the legacy `bootnode.json` or directory files.
+For this v4 Grove, use the staked contract, archival RPC, and deploy block recorded together in
+`deployment.json`; do not use the legacy `bootnode.json` or directory files.
 [`../../docs/JOIN.md`](../../docs/JOIN.md) shows the explicit self-enroll, register, and Proxy forms.

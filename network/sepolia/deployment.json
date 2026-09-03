@@ -14,15 +14,15 @@
   "services": {
     "elder": {
       "repository": "https://github.com/dmarzzz/shade-tree-node.git",
-      "commit": "afce3f02905ff3d77ed46fb50e238ef12c9c0136"
+      "commit": "43679a74167dfcdc16b65bc6ac8dff51901f8b58"
     },
     "node": {
       "repository": "https://github.com/dmarzzz/shade-tree-node.git",
-      "commit": "afce3f02905ff3d77ed46fb50e238ef12c9c0136"
+      "commit": "43679a74167dfcdc16b65bc6ac8dff51901f8b58"
     },
     "heartbeat": {
       "repository": "https://github.com/dmarzzz/shade-tree-node.git",
-      "commit": "afce3f02905ff3d77ed46fb50e238ef12c9c0136"
+      "commit": "43679a74167dfcdc16b65bc6ac8dff51901f8b58"
     }
   },
   "elder": {
@@ -41,7 +41,9 @@
         "membersSha256": "809d8fc762937c234650046bfdfa6cc6d9641e42762430a1961c4b8c7ab10898"
       },
       "staked": {
-        "contract": "0xFe48De8b9aCA4386DC31C845d579ae62f04f9d25"
+        "contract": "0xFe48De8b9aCA4386DC31C845d579ae62f04f9d25",
+        "rpcUrl": "https://rpc.sepolia.ethpandaops.io",
+        "deployBlock": 11510541
       },
       "paid": null
     },
@@ -61,5 +63,5 @@
     "legacy": null
   },
   "created": "2026-08-25",
-  "note": "Disposable invited-and-staked Protocol v4 research Grove: one stake-gated Elder and three dedicated Shade Tree nodes. Blue/green infrastructure and encrypted operator custody are managed from agent-devops; application services are pinned to afce3f02905ff3d77ed46fb50e238ef12c9c0136. Contracts and proof artifacts are explicitly untrusted Sepolia testnet material."
+  "note": "Disposable invited-and-staked Protocol v4 research Grove: one stake-gated Elder and three dedicated Shade Tree nodes. Blue/green infrastructure and encrypted operator custody are managed from agent-devops; application services are pinned to 43679a74167dfcdc16b65bc6ac8dff51901f8b58. Contracts and proof artifacts are explicitly untrusted Sepolia testnet material."
 }

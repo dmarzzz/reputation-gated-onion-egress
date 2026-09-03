@@ -88,9 +88,13 @@ ok(fields(validateDeploymentRecord(falseTrust, { repoRoot: ROOT })).includes("se
 console.log("admission fail-closed rules:");
 const staked = copy(live);
 staked.admission.paths = ["invited", "staked"];
-staked.admission.roots.staked = { contract: CONTRACT };
+staked.admission.roots.staked = { contract: CONTRACT, rpcUrl: "https://rpc.example.test", deployBlock: 42 };
 staked.admission.operatorAuthorization = { approved: true, decisionRef: "operator-change-42" };
 ok(validateDeploymentRecord(staked, { repoRoot: ROOT }).ok, "staked admission needs a contract root and explicit operator authorization reference");
+const badRpc = copy(staked); badRpc.admission.roots.staked.rpcUrl = "https://token@example.test";
+ok(fields(validateDeploymentRecord(badRpc, { repoRoot: ROOT })).includes("admission.roots.staked.rpcUrl"), "credentialed staking RPC URLs are rejected");
+const badDeployBlock = copy(staked); badDeployBlock.admission.roots.staked.deployBlock = -1;
+ok(fields(validateDeploymentRecord(badDeployBlock, { repoRoot: ROOT })).includes("admission.roots.staked.deployBlock"), "negative staking deploy blocks are rejected");
 const noAuth = copy(staked); noAuth.admission.operatorAuthorization = null;
 ok(fields(validateDeploymentRecord(noAuth, { repoRoot: ROOT })).includes("admission.operatorAuthorization"), "on-chain admission without operator authorization is rejected");
 const noRoot = copy(staked); noRoot.admission.roots.staked = null;

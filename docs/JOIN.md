@@ -19,8 +19,8 @@ matters.
 
 The historical Sepolia and June PoC details remain below as experiment records. Do not use
 their onions, payment endpoint, or `sepolia` network preset with the current Proxy. The live
-`deployment.json` explicitly reuses only the compatible staking set, gateway registry, RPC, and
-deploy-block metadata named in `contracts.json`.
+`deployment.json` explicitly reuses only the compatible staking set and gateway registry and
+publishes the active archival RPC and deploy block beside them.
 
 ## connect to an operator's v4 Grove: what you need
 

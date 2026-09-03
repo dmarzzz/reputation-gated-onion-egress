@@ -52,6 +52,8 @@ check(
     && deployment.admission?.paths?.includes("invited")
     && deployment.admission?.paths?.includes("staked")
     && /^0x[0-9a-f]{40}$/i.test(deployment.admission?.roots?.staked?.contract || "")
+    && /^https:\/\//.test(deployment.admission?.roots?.staked?.rpcUrl || "")
+    && Number.isInteger(deployment.admission?.roots?.staked?.deployBlock)
     && deployment.admission?.operatorAuthorization?.approved === true
     && deployment.security?.proofArtifacts === "untrusted-testnet"
     && deployment.security?.scope === "disposable-research",

@@ -73,7 +73,8 @@ The legacy `sepolia` runtime preset (`bootnode.json`, the full `contracts.json` 
 directories) is retired pre-v4 history and cannot be used in place of `<current-v4-network>`.
 The separate `network/sepolia/deployment.json` is current v4 research-deployment metadata. It
 publishes a runnable, explicit Sepolia staking profile while reusing only the compatible staking
-set, gateway registry, RPC, and deploy-block fields from `contracts.json`; it does not reactivate
+set and gateway registry from `contracts.json` and naming the active archival RPC and deploy block
+beside them; it does not reactivate
 the legacy preset or invited credentials.
 
 ## `contracts.json` schema
