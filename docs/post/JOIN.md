@@ -14,10 +14,10 @@ access uses the operator's member list. Staked or paid access uses operator-supp
 and RPC values. Your secret stays on your machine.
 
 Status: research preview, unaudited, with testnet ZK artifacts. The software can be exercised
-in a local or operator-configured v4 Grove, but there is no public access profile here.
-Do not put sensitive traffic on it. The legacy Sepolia contract and directory records are
-incompatible pre-v4 history. The public aggregate map observes a separate disposable v4 research
-Grove, but its count does not include the invited membership inputs needed by the Proxy.
+in a local or operator-configured v4 Grove. The live disposable v4 Sepolia Grove publishes an
+explicit self-staked testnet path in `network/sepolia/deployment.json`; invited access still needs
+private membership material. Do not put sensitive traffic on it. The legacy Sepolia
+`bootnode.json`, directory, and 2026-08-17 service records are incompatible pre-v4 history.
 See the repo README "Scope" and [`../SHIP-PLAN.md`](../SHIP-PLAN.md).
 
 ## 1. Get a member secret

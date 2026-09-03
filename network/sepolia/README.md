@@ -3,17 +3,20 @@
 This directory contains two deliberately separate generations:
 
 - [`deployment.json`](deployment.json) records the live disposable Protocol v4 research Grove
-  deployed on 2026-08-25: one Elder Tree and three Shade Tree nodes, invited-only, with explicitly
-  untrusted testnet proof artifacts. Its execution record is
+  deployed on 2026-08-25 and upgraded to staking on 2026-09-03: one stake-gated Elder Tree and
+  three Shade Tree nodes admitting invited and staked members, with explicitly untrusted testnet
+  contracts and proof artifacts. Its original execution record is
   [`docs/GO-LIVE-LOG-2026-08-25-v4.md`](../../docs/GO-LIVE-LOG-2026-08-25-v4.md).
 - [`contracts.json`](contracts.json), [`bootnode.json`](bootnode.json), the signed directory files,
-  and the integration reports below record the earlier pre-v4 Sepolia experiment. Those files remain
-  byte-stable historical evidence and are not current client presets.
+  and the integration reports below record the earlier pre-v4 Sepolia experiment. The bundle is not
+  a current client preset; `deployment.json` explicitly reuses only its compatible staking set,
+  gateway registry, RPC, and deploy-block metadata.
 
-> **No public access profile.** The public Grove observes only the signed aggregate count from the
-> current v4 research deployment. The repository does not publish that invited fleet's member
-> secret or membership input. Selecting `SHADE_TREE_NETWORK=sepolia` still supplies no runnable
-> defaults and fails closed; obtain a complete profile from its operator or run a local v4 fleet.
+> **Testnet staking profile.** `deployment.json` publishes the current Elder, Canopy signer,
+> admission policy, and v4 staking contract; `contracts.json` publishes the matching RPC and
+> deployment block. Invited membership material remains private. Selecting
+> `SHADE_TREE_NETWORK=sepolia` still supplies no implicit defaults and fails closed: load the
+> explicit files, self-enroll and post only Sepolia test ETH, or run a local v4 fleet.
 
 Unless a sentence refers to `deployment.json` or the 2026-08-25 v4 log, “live” below records what
 was verified during the retired 2026-08-17 experiment. It does not mean that the older service is
@@ -39,8 +42,9 @@ Live integration (two tiers, on-chain root mode, tier-32 slash):
 | GatewayRegistry | [`0x94ECeD0C1c7a8793a5c901c8C1995C8E7039A868`](https://sepolia.etherscan.io/address/0x94ECeD0C1c7a8793a5c901c8C1995C8E7039A868) — deployed 2026-08-17 at block 11509783, tx `0x1ae812c1…3ad5dc`, owner `0xc8606C75E003EDA7C0a377B4708AbEC6EB7a7f02` (fleet operator hot key); BOND 0.001 ETH, unbonding 300s / min 270s (verified via `cast`: `BOND()`, `owner()`). Receipt bundle: [`gateway-registry-broadcast.json`](gateway-registry-broadcast.json); recorded with `shade-tree record-deploy --network sepolia --from-broadcast …`. The pre-v4 network preset formerly supplied this address (`docs/ONCHAIN-DEPLOY.md` §7). Unchanged by the rln-v4 redeploy. |
 
 Receipt bundle: [`rln-v4-broadcast.json`](rln-v4-broadcast.json). The retired network preset
-formerly resolved `SHADE_TREE_GROUP_CONTRACT` to this set. Do not stake through it with a
-current client; use contract and RPC values explicitly supplied by a v4 operator (`docs/CLI.md`).
+formerly resolved `SHADE_TREE_GROUP_CONTRACT` to this set. The current v4 research Grove now
+explicitly reuses it; use the Elder, signer, staking set, RPC, and deploy block named by
+`deployment.json` and this file rather than enabling the retired preset (`docs/CLI.md`).
 
 **Superseded (history only, do not stake there):**
 
@@ -128,8 +132,9 @@ created by OpenTofu, egress-01/02 retrofitted via the Ansible role.
 Do not use the legacy `bootnode.json`, signed directories, contracts, registrar, or signer with a
 current checkout. A signed historical directory can still be authentic while every node in it
 speaks an incompatible protocol. The current `deployment.json` Elder onion and signer are public
-deployment metadata, but they are not sufficient for invited access: a member also needs the exact
-tier, secret, and matching member-set input from the v4 operator.
+deployment metadata. Invited access still needs the operator's matching member-set input; staked
+access is permissionless on Sepolia at one of the contract's published tiers and keeps the member
+secret local.
 
 For a local v4 fleet, follow [`../../docs/QUICKSTART.md`](../../docs/QUICKSTART.md) Path B. For an
 operator-run v4 fleet, get a freshly issued bootnode onion and pinned directory signer from that
@@ -143,6 +148,6 @@ SHADE_TREE_SECRET="$SHADE_TREE_SECRET" shade-tree proxy --limit <operator-tier> 
 unset SHADE_TREE_SECRET
 ```
 
-If the v4 operator offers paid or staked admission, use only the registrar, RPC URL, and fresh
-v4 contract addresses they supply. [`../../docs/JOIN.md`](../../docs/JOIN.md) shows those explicit
-forms; none of the values on this page should be substituted into them.
+For this v4 Grove, use the staked contract recorded in `deployment.json` with the RPC and deploy
+block from `contracts.json`; do not use the legacy `bootnode.json` or directory files.
+[`../../docs/JOIN.md`](../../docs/JOIN.md) shows the explicit self-enroll, register, and Proxy forms.

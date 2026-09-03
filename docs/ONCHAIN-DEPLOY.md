@@ -1,10 +1,11 @@
 # On-chain deploy runbook: persistent `GatewayRegistry` + `StakedReputationSet` (+ `PaidAccessSet`, §9)
 
 Task: **T-DEPLOY-7** — a persistent on-chain deployment of the stake contracts, wired to
-an operator's v4 fleet (Sepolia or a chosen L2). The checked-in Sepolia `contracts.json` is the
-retired pre-v4 deployment; create a new current contract/runtime record or use explicit v4 values
-rather than updating that historical file in place. The adjacent `deployment.json` records the
-current invited-only v4 research fleet, which has no on-chain admission contracts.
+an operator's v4 fleet (Sepolia or a chosen L2). The checked-in Sepolia `contracts.json` is a
+retired pre-v4 deployment bundle, so do not enable it as a runtime preset. Since 2026-09-03, the
+adjacent `deployment.json` explicitly reuses its compatible staking set, gateway registry, RPC,
+and deploy-block metadata for the live invited-and-staked v4 research Grove. Create a new current
+contract/runtime record for other fleets rather than silently reviving the historical bundle.
 
 Script: [`contracts/script/DeployRegistry.s.sol`](../contracts/script/DeployRegistry.s.sol)
 (`DeployRegistry`). It deploys `GatewayRegistry` and, unless disabled, `StakedReputationSet`

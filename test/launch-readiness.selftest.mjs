@@ -45,19 +45,23 @@ check(
   frontDoors.every((doc) => /(?:deployment\.json|disposable v4|v4 research Grove)/i.test(doc)),
 );
 check(
-  "current deployment receipt is explicitly v4, invited-only, and untrusted research",
+  "current deployment receipt is explicitly v4, invited-and-staked, and untrusted research",
   deployment.status === "live"
     && deployment.protocol?.min === 4
     && deployment.protocol?.max === 4
     && deployment.admission?.paths?.includes("invited")
+    && deployment.admission?.paths?.includes("staked")
+    && /^0x[0-9a-f]{40}$/i.test(deployment.admission?.roots?.staked?.contract || "")
+    && deployment.admission?.operatorAuthorization?.approved === true
     && deployment.security?.proofArtifacts === "untrusted-testnet"
     && deployment.security?.scope === "disposable-research",
 );
 check(
-  "Sepolia index says the current receipt is not a public access profile",
+  "Sepolia index publishes the explicit testnet staking profile without reviving the legacy preset",
   /deployment\.json[\s\S]*live disposable Protocol v4/.test(sepoliaReadme)
-    && /No public access profile/.test(sepoliaReadme)
-    && /tier, secret, and matching member-set input/.test(sepoliaReadme),
+    && /Testnet staking profile/.test(sepoliaReadme)
+    && /does not reactivate the legacy preset|retired network preset/.test(sepoliaReadme)
+    && /Invited membership material remains private/.test(sepoliaReadme),
 );
 check(
   "deployment plan records the research fleet while keeping production blocked on trusted setup",

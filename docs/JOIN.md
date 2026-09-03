@@ -13,11 +13,14 @@ matters.
 > its discovery pins and admission path, or run the local Grove in [QUICKSTART.md](QUICKSTART.md).
 > The legacy Sepolia contract/directory files and 2026-08-17 log describe the incompatible
 > pre-v4 fleet. A separate `network/sepolia/deployment.json` records the live disposable v4
-> research Grove behind the public aggregate map, but its count is not an access offer: invited
-> members still need a complete operator-supplied profile.
+> research Grove behind the public aggregate map. Since 2026-09-03 its explicit staked path is a
+> Sepolia testnet access offer; invited members still need private operator-supplied membership
+> material. Never substitute the legacy `bootnode.json` or directory files.
 
 The historical Sepolia and June PoC details remain below as experiment records. Do not use
-their onions, contracts, payment endpoint, or `sepolia` network preset with the current Proxy.
+their onions, payment endpoint, or `sepolia` network preset with the current Proxy. The live
+`deployment.json` explicitly reuses only the compatible staking set, gateway registry, RPC, and
+deploy-block metadata named in `contracts.json`.
 
 ## connect to an operator's v4 Grove: what you need
 

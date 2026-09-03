@@ -24,6 +24,20 @@ ok(
   labClientOptions({ SHADE_TREE_SECRET: "secret", SHADE_TREE_LIMIT: "8", SHADE_TREE_SLOT_STATE_DIR: "/durable/rln" }).slotStateDir === "/durable/rln",
   "the production client receives its durable RLN slot-state directory",
 );
+const mixedAdmission = labClientOptions({
+  SHADE_TREE_SECRET: "secret",
+  SHADE_TREE_LIMIT: "32",
+  SHADE_TREE_LEAF_SOURCE: "invited",
+  SHADE_TREE_MAX_ANON: "0",
+});
+ok(
+  mixedAdmission.leafSource === "invited" && mixedAdmission.maxAnon === false,
+  "the Lab can use an invited leaf through an explicitly authorized mixed-admission gateway",
+);
+ok(
+  labClientOptions({ SHADE_TREE_SECRET: "secret" }).maxAnon === true,
+  "the Lab preserves invited-only max-anon as its default",
+);
 
 let release;
 const held = new Promise((resolve) => { release = resolve; });

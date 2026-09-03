@@ -28,21 +28,27 @@
   "elder": {
     "onion": "a4xt55gef66pifqebadjobjpy2drsoa63bdok4toisvenmyehslaz4id.onion",
     "canopySigner": "e0ce2892955b506c63d746ff61e06c0fdf446536c2b7b3dc68a3ba214608ca8c",
-    "admission": "open",
-    "gatewayRegistry": null
+    "admission": "stake",
+    "gatewayRegistry": "0x94ECeD0C1c7a8793a5c901c8C1995C8E7039A868"
   },
   "admission": {
     "paths": [
-      "invited"
+      "invited",
+      "staked"
     ],
     "roots": {
       "invited": {
         "membersSha256": "809d8fc762937c234650046bfdfa6cc6d9641e42762430a1961c4b8c7ab10898"
       },
-      "staked": null,
+      "staked": {
+        "contract": "0xFe48De8b9aCA4386DC31C845d579ae62f04f9d25"
+      },
       "paid": null
     },
-    "operatorAuthorization": null
+    "operatorAuthorization": {
+      "approved": true,
+      "decisionRef": "user-approved live Sepolia staking, 2026-09-03"
+    }
   },
   "artifacts": {
     "accepted": [
@@ -55,5 +61,5 @@
     "legacy": null
   },
   "created": "2026-08-25",
-  "note": "Disposable invited-only Protocol v4 research Grove: one dedicated Elder and three dedicated Shade Tree nodes. Blue/green infrastructure is managed from agent-devops; application services are pinned to afce3f02905ff3d77ed46fb50e238ef12c9c0136. Current proof artifacts are explicitly untrusted testnet material."
+  "note": "Disposable invited-and-staked Protocol v4 research Grove: one stake-gated Elder and three dedicated Shade Tree nodes. Blue/green infrastructure and encrypted operator custody are managed from agent-devops; application services are pinned to afce3f02905ff3d77ed46fb50e238ef12c9c0136. Contracts and proof artifacts are explicitly untrusted Sepolia testnet material."
 }

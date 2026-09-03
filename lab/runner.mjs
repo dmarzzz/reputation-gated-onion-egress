@@ -4,6 +4,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { createServer } from "node:http";
 import { pathToFileURL } from "node:url";
 import { ShadeTreeClient } from "../client/shade-tree-client.mjs";
+import { envFlag } from "../lib/admission.mjs";
 
 export const LAB_TARGET = "https://example.com/";
 export const DEFAULT_COOLDOWN_MS = 16_000;
@@ -124,8 +125,8 @@ export function labClientOptions(env = process.env) {
   return {
     secret: env.SHADE_TREE_SECRET,
     limit: Number(env.SHADE_TREE_LIMIT || 8),
-    leafSource: "invited",
-    maxAnon: true,
+    leafSource: env.SHADE_TREE_LEAF_SOURCE || "invited",
+    maxAnon: env.SHADE_TREE_MAX_ANON == null ? true : envFlag(env.SHADE_TREE_MAX_ANON),
     fetchTimeoutMs: 100_000,
     fetchMaxBodyBytes: 32_768,
     slotStateDir: env.SHADE_TREE_SLOT_STATE_DIR,
