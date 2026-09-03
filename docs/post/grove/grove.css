@@ -11,6 +11,11 @@ body.network-page::before {
   content: none;
 }
 
+.network-page > main {
+  height: 100%;
+  min-height: 0;
+}
+
 .network-hero {
   position: relative;
   display: grid;
@@ -340,6 +345,10 @@ body.network-page::before {
     padding: 0.5rem;
     overflow-x: hidden;
     overflow-y: auto;
+  }
+
+  .network-page > main {
+    height: auto;
   }
 
   .network-hero {

@@ -123,6 +123,8 @@ async function main() {
     ["shim-port", "SHADE_TREE_SHIM_PORT"],
     ["directory", "SHADE_TREE_DIRECTORY"],
     ["dir-signer", "SHADE_TREE_DIR_SIGNER"],
+    ["directory-refresh-ms", "SHADE_TREE_DIRECTORY_REFRESH_MS"],
+    ["rotation-spread", "SHADE_TREE_ROTATION_SPREAD"],
     ["network", "SHADE_TREE_NETWORK"],
     ["log-level", "SHADE_TREE_LOG_LEVEL"],
     ["log-format", "SHADE_TREE_LOG_FORMAT"],
@@ -137,6 +139,7 @@ async function main() {
   }
   ok(/flags, "quiet"[\s\S]*SHADE_TREE_LOG_LEVEL = "warn"/.test(src), "--quiet lowers routine output to warn unless a level is explicit");
   ok(/flags, "no-banner"[\s\S]*SHADE_TREE_BANNER = "never"/.test(src), "--no-banner suppresses terminal art");
+  ok(/flags, "no-rotation-spread"[\s\S]*SHADE_TREE_ROTATION_SPREAD = "0"/.test(src), "--no-rotation-spread opts out of the default smooth rotation");
 
   // --- --network / SHADE_TREE_NETWORK (lib/network-record.mjs) --------------------------------------
   // `record-deploy` has no config role and its --dry-run writes nothing, so it is the safe live
@@ -146,14 +149,15 @@ async function main() {
   ok(badNet.code === 1 && /SHADE_TREE_NETWORK=no-such-network-zzz/.test(badNet.out) && /no such network/.test(badNet.out), "`--network <unknown>` fails fast in the wrapper before spawning");
   const trav = shadeTreeCli(["record-deploy", "--network", "../lib", "--dry-run"]);
   ok(trav.code === 1 && /bad network name/.test(trav.out), "`--network ../x` (traversal) is rejected");
-  const retiredMessage = /retired deployment record; select a current v4 network, or unset SHADE_TREE_NETWORK and configure explicit endpoints/;
   const dry = shadeTreeCli(["record-deploy", "--network", "sepolia", "--address", "0x" + "ab".repeat(20), "--force", "--dry-run"]);
-  ok(dry.code === 1 && retiredMessage.test(dry.out) && !/dry-run:/.test(dry.out), "`--network sepolia` rejects the retired pre-v4 record before spawning the child");
+  ok(dry.code === 0 && /supplied .*SHADE_TREE_BOOTNODE_ONION/.test(dry.out) && /SHADE_TREE_DIR_SIGNER/.test(dry.out) && /dry-run:/.test(dry.out),
+    "`--network sepolia` supplies the current v4 Elder pair while ignoring retired pre-v4 records");
   const viaEnv = shadeTreeCli(["record-deploy", "--address", "0x" + "ab".repeat(20), "--force", "--dry-run"], { env: { SHADE_TREE_NETWORK: "sepolia" } });
-  ok(viaEnv.code === 1 && retiredMessage.test(viaEnv.out) && !/dry-run:/.test(viaEnv.out), "SHADE_TREE_NETWORK=sepolia rejects the retired pre-v4 record before spawning the child");
+  ok(viaEnv.code === 0 && /supplied .*SHADE_TREE_BOOTNODE_ONION/.test(viaEnv.out) && /dry-run:/.test(viaEnv.out),
+    "SHADE_TREE_NETWORK=sepolia resolves the current v4 deployment");
 
   // Preserve positive coverage with an ephemeral active record. This tests both record-to-env
-  // default resolution and the child spawn without making any committed deployment runnable.
+  // default resolution and the child spawn for a synthetic contract-bearing network.
   const activeName = `selftest-active-${process.pid}`;
   const activeDir = join(ROOT, "network", activeName);
   await mkdir(activeDir);

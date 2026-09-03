@@ -60,7 +60,7 @@
     <header class="guide-intro">
       <h1>Add Shade Tree Grove to an agent.</h1>
       <p>Install one verified Rust binary, start its embedded-Arti Proxy, then give that route to one agent process.</p>
-      <p class="guide-status"><strong>Research preview.</strong> v0.4.1 is the current patched binary agent distribution. There is no repo-maintained public v4 access profile; an operator must admit your leaf and supply the matching discovery values.</p>
+      <p class="guide-status"><strong>Research preview.</strong> v0.4.1 is the current patched binary agent distribution. It bundles the current v4 Sepolia discovery pair, but an operator must still admit your leaf and supply the matching membership input.</p>
     </header>
 
     <div class="guide-steps">
@@ -76,13 +76,13 @@
 
       <section class="guide-step" aria-labelledby="agent-profile">
         <h2 id="agent-profile">2. Create an identity and get admitted</h2>
-        <p>Ask one Grove operator for the exact rate tier, an invited, staked, or paid admission path, the Elder Tree onion and its raw 64-hex Canopy signer, and the matching membership input.</p>
+        <p>Ask one Grove operator for the exact rate tier, an invited, staked, or paid admission path, and the matching membership input. Ask for an Elder Tree onion and its raw 64-hex Canopy signer only when using an alternate Grove.</p>
         <div class="command" aria-label="Create a local Shade Tree identity">
           <code>read -r SHADE_TREE_LIMIT<br>shade-tree enroll --limit "$SHADE_TREE_LIMIT" --out identity.json &gt; public-leaf.txt</code>
           <button class="copy-command" type="button" data-copy="read -r SHADE_TREE_LIMIT&#10;shade-tree enroll --limit &quot;$SHADE_TREE_LIMIT&quot; --out identity.json &gt; public-leaf.txt" aria-label="Copy identity enrollment commands">copy</button>
         </div>
         <p><code>identity.json</code> contains the member secret and stays local. Send only <code>public-leaf.txt</code> through the operator's admission process. For invited access, wait for the operator to confirm that leaf in the root its nodes verify and save the matching <code>members.json</code>.</p>
-        <p>There is no public profile to substitute here. Do not use the retired Sepolia records or invent values. If you do not have an operator, ask for operator or onboarding help in <a href="https://github.com/dmarzzz/shade-tree-node/discussions">GitHub Discussions</a>; never post <code>identity.json</code>, a member secret, or a Proxy token.</p>
+        <p>The bundled discovery pair does not include public admission or membership. Do not use the retired Sepolia records or invent those values. If you do not have an operator, ask for operator or onboarding help in <a href="https://github.com/dmarzzz/shade-tree-node/discussions">GitHub Discussions</a>; never post <code>identity.json</code>, a member secret, or a Proxy token.</p>
       </section>
 
       <section class="guide-step" aria-labelledby="agent-start">
@@ -92,12 +92,12 @@
           <code>(umask 077; set -C; shade-tree proxy-token &gt; proxy-token.txt)<br>IFS= read -r SHADE_TREE_PROXY_TOKEN &lt; proxy-token.txt<br>export SHADE_TREE_PROXY_TOKEN</code>
           <button class="copy-command" type="button" data-copy="(umask 077; set -C; shade-tree proxy-token &gt; proxy-token.txt)&#10;IFS= read -r SHADE_TREE_PROXY_TOKEN &lt; proxy-token.txt&#10;export SHADE_TREE_PROXY_TOKEN" aria-label="Copy Proxy token commands">copy</button>
         </div>
-        <p>Then load the operator-supplied discovery pair and start invited access on loopback:</p>
+        <p>Then start invited access on loopback; the Proxy uses the bundled current-v4 Elder and signer:</p>
         <div class="command" aria-label="Start the local Shade Tree embedded-Arti Proxy">
-          <code>read -r SHADE_TREE_BOOTNODE_ONION<br>read -r SHADE_TREE_DIR_SIGNER<br>shade-tree proxy \<br>&nbsp;&nbsp;--bootnode-onion "$SHADE_TREE_BOOTNODE_ONION" \<br>&nbsp;&nbsp;--signer "$SHADE_TREE_DIR_SIGNER" \<br>&nbsp;&nbsp;--identity identity.json \<br>&nbsp;&nbsp;--members members.json \<br>&nbsp;&nbsp;--listen 127.0.0.1:8118</code>
-          <button class="copy-command" type="button" data-copy="read -r SHADE_TREE_BOOTNODE_ONION&#10;read -r SHADE_TREE_DIR_SIGNER&#10;shade-tree proxy \&#10;  --bootnode-onion &quot;$SHADE_TREE_BOOTNODE_ONION&quot; \&#10;  --signer &quot;$SHADE_TREE_DIR_SIGNER&quot; \&#10;  --identity identity.json \&#10;  --members members.json \&#10;  --listen 127.0.0.1:8118" aria-label="Copy embedded-Arti Proxy start commands">copy</button>
+          <code>shade-tree proxy \<br>&nbsp;&nbsp;--identity identity.json \<br>&nbsp;&nbsp;--members members.json \<br>&nbsp;&nbsp;--listen 127.0.0.1:8118</code>
+          <button class="copy-command" type="button" data-copy="shade-tree proxy \&#10;  --identity identity.json \&#10;  --members members.json \&#10;  --listen 127.0.0.1:8118" aria-label="Copy embedded-Arti Proxy start commands">copy</button>
         </div>
-        <p>The signer and Elder onion are one trust-pinned pair; take both from the same operator. Staked and paid profiles use that operator's contract and RPC values instead of <code>members.json</code>. Keep the token file only for this running Proxy.</p>
+        <p>An alternate signer's key and Elder onion are one trust-pinned pair; take both from the same operator. Staked and paid profiles use that operator's contract and RPC values instead of <code>members.json</code>. Keep the token file only for this running Proxy.</p>
       </section>
 
       <section class="guide-step" aria-labelledby="agent-run">

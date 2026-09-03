@@ -12,11 +12,12 @@ This directory contains two deliberately separate generations:
   a current client preset; `deployment.json` explicitly reuses only its compatible staking set,
   gateway registry, RPC, and deploy-block metadata.
 
-> **Testnet staking profile.** `deployment.json` publishes the current Elder, Canopy signer,
-> admission policy, and v4 staking contract; `contracts.json` publishes the matching RPC and
-> deployment block. Invited membership material remains private. Selecting
-> `SHADE_TREE_NETWORK=sepolia` still supplies no implicit defaults and fails closed: load the
-> explicit files, self-enroll and post only Sepolia test ETH, or run a local v4 fleet.
+> **Live discovery and testnet staking.** The current v4 Elder onion and Canopy signer in
+> `deployment.json` are the bundled client discovery default. The same record publishes its explicit
+> staking set and `contracts.json` publishes the matching RPC and deploy block.
+> Invited membership material remains private; a staked member self-enrolls with Sepolia test ETH
+> and supplies the
+> staking/RPC values explicitly because the retired legacy preset stays disabled.
 
 Unless a sentence refers to `deployment.json` or the 2026-08-25 v4 log, “live” below records what
 was verified during the retired 2026-08-17 experiment. It does not mean that the older service is
@@ -91,7 +92,7 @@ admission, staticDirectory}`; schema in `network/README.md`). It was verified **
 | ref deployed | both `main` @ `c6be15e` (2026-08-18 06:36 UTC, T-FEAT-9 per-gateway admission; earlier `6c4940c` / `cb237e07` / `d8a6530` / `af225c2`) |
 
 Before retirement, the network preset resolved the bootnode onion and signer above. Current v4
-clients deliberately receive no defaults from the retired record. Its cold-path
+clients receive their defaults from `deployment.json`, never from this retired record. Its cold-path
 [`directory-bootnode.json`](directory-bootnode.json) remains as the bootnode's signed
 `/directory` export and research evidence; its valid signature does not make the listed nodes
 v4-compatible. The box hosting bootnode + gateway-1 was a
@@ -136,15 +137,15 @@ deployment metadata. Invited access still needs the operator's matching member-s
 access is permissionless on Sepolia at one of the contract's published tiers and keeps the member
 secret local.
 
-For a local v4 fleet, follow [`../../docs/QUICKSTART.md`](../../docs/QUICKSTART.md) Path B. For an
-operator-run v4 fleet, get a freshly issued bootnode onion and pinned directory signer from that
-operator:
+For a local v4 fleet, follow [`../../docs/QUICKSTART.md`](../../docs/QUICKSTART.md) Path B. The
+current research Grove needs no explicit discovery flags; an alternate operator-run fleet supplies
+an Elder onion and pinned directory signer as an override pair:
 
 ```bash
 bash scripts/start-tor-client.sh
 read -s SHADE_TREE_SECRET
-SHADE_TREE_SECRET="$SHADE_TREE_SECRET" shade-tree proxy --limit <operator-tier> --tor-port 9260 \
-  --bootnode <v4-bootnode.onion> --dir-signer <v4-directory-signer-hex>
+SHADE_TREE_SECRET="$SHADE_TREE_SECRET" shade-tree proxy --limit <operator-tier> --tor-port 9260
+# Alternate fleet: add --bootnode <v4-elder.onion> --dir-signer <matching-signer-hex>
 unset SHADE_TREE_SECRET
 ```
 

@@ -81,11 +81,12 @@ and key; it does not prove control of a compact-directory entry. Optional stake 
 narrows the label trust. The bootnode is not a substitute for a protected signing key.
 
 **The pinned directory signer (`SHADE_TREE_DIR_SIGNER`).**
-Trusted for: authenticating and choosing *which list* is the fleet. There is intentionally **no default signer**
-(`client/selection.mjs:parsePinnedSigners`); without a pin, directory mode is disabled rather than
-falling back to trust on first use. A compromised signer can add any internally consistent entry,
-including an attacker-controlled onion/key pair. The independent onion↔pubkey check only prevents
-a mismatched pair (see §5).
+Trusted for: authenticating and choosing *which list* is the fleet. The bundled Sepolia client
+profile pins the current v4 signer. An explicit Elder or static-directory source must supply its
+matching pin (`client/selection.mjs:parsePinnedSigners`); it is never accepted through trust on
+first use. A compromised signer can add any internally consistent entry, including an
+attacker-controlled onion/key pair. The independent onion↔pubkey check only prevents a mismatched
+pair (see §5).
 
 **The on-chain registry / RPC.**
 Trusted like any node read. Stake/root reads default to `latest` (dev-chain friendly) and can be

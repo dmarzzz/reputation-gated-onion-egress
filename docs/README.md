@@ -9,7 +9,8 @@ A browsable HTML build of all of this: `node docs-site/build.mjs` ([`docs-site/`
 > contracts, bootnode record, and signed directories remain incompatible pre-v4 history and are
 > not client presets. A separate [`network/sepolia/deployment.json`](../network/sepolia/deployment.json)
 > records the live disposable v4 research Grove observed by the public aggregate map. It is
-> invited-only, uses untrusted testnet artifacts, and still is not a public access profile.
+> admits invited and explicitly self-staked Sepolia testnet members and uses untrusted testnet
+> artifacts. Invited credentials remain private; the staking profile is public and explicit.
 
 ## Start here
 

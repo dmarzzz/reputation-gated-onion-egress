@@ -67,8 +67,9 @@ canonical serialization (fixed field order, whitespace-independent; see
 `canonicalDirectoryBytes`). The signer's **public key is pinned in the client** at
 bundle time. A swapped or edited file fails the check and is rejected, not trusted.
 There is deliberately no trust-on-first-use default: an unpinned directory is exactly
-the poisoning surface the signature exists to close, so directory mode is off until a
-pin is set (`SHADE_TREE_DIR_SIGNER`, or a hardcoded constant in a real bundle).
+the poisoning surface the signature exists to close. The current v4 Sepolia profile supplies a
+bundled pin; every explicit Elder or static directory must supply its matching
+`SHADE_TREE_DIR_SIGNER`.
 
 **Onion-control binding, two layers.** A poisoned or mis-signed directory must not be
 able to graft a hostile address:
@@ -116,11 +117,11 @@ able to graft a hostile address:
 
 `curl` stays dumb; the shim is the router. Per CONNECT:
 
-1. **Pick.** Weighted-random over the fleet, healthy gateways only, weight is the
-   probability. This is the app-layer analog of Tor rotating circuits, except our
-   "exits" are destinations (onion services), so selection lives in the shim, not in
-   Tor's relay path selection.
-2. **Failover.** Build a full try-order (the weighted pick, then the rest as
+1. **Pick.** Smooth weighted round-robin over the healthy fleet by default. Equal-weight
+   gateways alternate on successive tunnels; unequal weights retain their proportional share.
+   This is the app-layer analog of Tor rotating circuits, except our "exits" are destinations
+   (onion services), so selection lives in the shim, not in Tor's relay path selection.
+2. **Failover.** Build a full try-order (the spread pick, then the rest as weighted-random
    fallbacks). Dial in order; on a dial timeout move to the next gateway. Once a socket
    is up and the envelope is sent, the request is committed to that gateway; failover
    is dial-time only.
@@ -130,17 +131,14 @@ able to graft a hostile address:
    EWMA. This health is the client's local view and is never written back to the signed
    file.
 
-`SHADE_TREE_ONION` still forces a single gateway (debug pin, or when a caller genuinely
-wants a fixed egress IP). With no `SHADE_TREE_DIRECTORY`, the single-onion path is exactly
-the PoC's, untouched.
+`SHADE_TREE_ONION` still forces a single gateway when a caller genuinely wants a fixed egress IP.
+Without any explicit source, the client fetches the signed Canopy from the bundled Elder and uses
+the default spread. `SHADE_TREE_ROTATION_SPREAD=0` opts out to a weighted-random first choice.
 
-**Rotation is free, cryptographically.** The membership proof is gateway-independent:
-same trusted root + same epoch verifies at *any* gateway that loads the same
-`members.json`. So rotation needs no new proof and no new circuit. The shim reuses the
-cached epoch proof (~0.9 KB, generated once per epoch, ~30 ms to verify at whichever
-gateway receives it; numbers from [ROADMAP proof overhead](ROADMAP-v1.md#proof-overhead))
-and just dials a different onion. Rotating across the whole fleet on every request
-costs zero extra proving.
+**Rotation adds no extra proof.** Each new tunnel consumes its own RLN slot and fresh proof. The
+gateway is selected before that proof is minted, and the proof is gateway-independent: the same
+trusted root + epoch verifies at any gateway loading the same `members.json`. If setup fails over,
+the client reuses that tunnel's proof across candidates rather than consuming another slot.
 
 ## How it composes with items 1 and 2
 
@@ -233,7 +231,7 @@ implements.
 | Failure | Effect if unmitigated | Mitigation (built unless noted) |
 |---|---|---|
 | Directory file swapped | Client steered to hostile gateways | Pinned signer; bad signature rejected |
-| Signer key not pinned (TOFU) | First fetch trusted blindly | No default pin; directory mode off until pinned |
+| Explicit source lacks a signer pin | First fetch could be trusted blindly | Reject it; only the bundled profile supplies its own pin |
 | Poisoned list grafts hostile onion | Egress via attacker's IP | Static `pubkey == onionToPubkey(onion)` binding at load |
 | Listed onion an attacker briefly fronts | Egress via attacker | Live onion-control challenge (`verifyOnionControl`; wire into handshake) |
 | Directory onion dead / unreachable | Fleet unusable | Last-known-good cache; `loadDirectory` degrades to previous good list |

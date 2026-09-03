@@ -1,23 +1,21 @@
 // Selftest for quality-aware ROTATION / load spread (T-FEAT-4).
 //
-// Today slot-0 (the gateway the client proxy actually dials) is a fresh independent weighted-random draw per
-// CONNECT: memoryless, so the top-weight gateway keeps winning back-to-back and equal-weight peers get
-// bursty, clumped load. With SHADE_TREE_ROTATION_SPREAD armed, slot-0 is chosen by a smooth weighted
-// round-robin (SWRR) over the SAME healthy, weight-clamped, receipt-adjusted pool, which (1) spreads
-// load evenly / avoids re-hammering the just-used gateway (anti-stickiness) while (2) preserving the
-// long-run weighted share EXACTLY. The whole feature is OFF by default, and when off selection is
-// byte-identical to today's weight-only behavior.
+// Slot-0 (the gateway the client proxy actually dials) is chosen by smooth weighted round-robin per
+// CONNECT by default. A weighted-random first choice remains as an explicit opt-out. Smooth rotation
+// runs over the SAME healthy, weight-clamped, receipt-adjusted pool, spreading load evenly and avoiding
+// re-hammering the just-used gateway while preserving the long-run weighted share exactly. When
+// explicitly off, selection remains the original weight-only behavior.
 //
 // This drives the real client/selection.mjs over a STATIC signed-directory source (no Tor, no chain):
 // mint a signer + gateways, sign a directory, pin the signer, seed a deterministic rng, and count how
 // often each gateway lands in slot-0 across many draws — the same statistical style the other selection
 // selftests use. Env is set BEFORE importing selection.mjs because its config is read at module load;
-// the default-OFF proof runs in its own child process with the flag unset (config is captured at import).
+// the default-ON and explicit-OFF proofs run in child processes (config is captured at import).
 //
 //   node client/rotation.selftest.mjs
 //
-// Exit 0 = all invariants held (spread/anti-stickiness, long-run weight preserved, default-off
-// byte-identical). Nonzero = a check failed (prints which).
+// Exit 0 = all invariants held (default spread/anti-stickiness, long-run weight preserved, explicit
+// opt-out byte-identical). Nonzero = a check failed (prints which).
 
 import { generateKeyPairSync } from "node:crypto";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
@@ -99,11 +97,44 @@ async function main() {
   writeFileSync(eqPath, JSON.stringify(eqDir) + "\n");
   writeFileSync(uwPath, JSON.stringify(uwDir) + "\n");
 
-  // ---- default OFF: byte-identical weighted-random (separate process, flag unset) -----------------
-  // Config is captured at import, so the OFF proof runs in its own process with the flag UNSET. It must
-  // reproduce today's behavior: weighted-random slot-0 — proportional share AND a memoryless immediate-
-  // repeat rate (~1/K for equal weights), i.e. NOT spread.
-  console.log("default OFF (SHADE_TREE_ROTATION_SPREAD unset), separate process — today's weighted-random:");
+  // ---- default ON: an unset/empty setting arms smooth spread -------------------------------------
+  console.log("default ON (SHADE_TREE_ROTATION_SPREAD unset):");
+  const defaultScript = `
+import { pathToFileURL } from "node:url";
+const sel = await import(${JSON.stringify(pathToFileURL(SELECTION_PATH).href)});
+if (sel.rotationSpreadEnabled() !== true) { console.error("SPREAD-OFF-UNEXPECTED"); process.exit(3); }
+function mulberry32(seed){let a=seed>>>0;return()=>{a|=0;a=(a+0x6d2b79f5)|0;let t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296;};}
+sel._setRng(mulberry32(0x44ef));
+const bare = ${JSON.stringify(bareEq)};
+const counts = {}; let repeats = 0, prev = null;
+for (let i = 0; i < 8000; i++) {
+  const o = (await sel.selectCandidates())[0].onion;
+  counts[o] = (counts[o] || 0) + 1;
+  if (o === prev) repeats++;
+  prev = o;
+}
+for (const b of bare) if (counts[b] !== 2000) { console.error("DEFAULT-NOT-EVEN:" + b + "=" + counts[b]); process.exit(4); }
+if (repeats !== 0) { console.error("DEFAULT-REPEATED:" + repeats); process.exit(5); }
+console.log("DEFAULT-ON-OK");`;
+  let defaultCode = 0, defaultOut = "";
+  try {
+    defaultOut = execFileSync(process.execPath, ["--input-type=module", "-e", defaultScript], {
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        SHADE_TREE_DIRECTORY: eqPath,
+        SHADE_TREE_DIR_SIGNER: signer.pub,
+        SHADE_TREE_BOOTNODE_ONION: "",
+        SHADE_TREE_HEALTH_CACHE: join(work, "health-default.json"),
+        SHADE_TREE_DIRECTORY_REFRESH_MS: "0",
+        SHADE_TREE_ROTATION_SPREAD: "",
+      },
+    });
+  } catch (e) { defaultCode = e.status ?? 1; defaultOut = (e.stdout || "") + (e.stderr || ""); }
+  ok(defaultCode === 0, `unset setting spreads equal gateways without repeats (${defaultOut.trim()})`);
+
+  // ---- explicit OFF: preserve weighted-random ----------------------------------------------------
+  console.log("explicit OFF (SHADE_TREE_ROTATION_SPREAD=0):");
   const offScript = `
 import { pathToFileURL } from "node:url";
 const sel = await import(${JSON.stringify(pathToFileURL(SELECTION_PATH).href)});
@@ -134,11 +165,11 @@ process.exit(0);`;
         SHADE_TREE_BOOTNODE_ONION: "",
         SHADE_TREE_HEALTH_CACHE: join(work, "health-off.json"),
         SHADE_TREE_DIRECTORY_REFRESH_MS: "0",
-        SHADE_TREE_ROTATION_SPREAD: "", // explicitly OFF
+        SHADE_TREE_ROTATION_SPREAD: "0",
       },
     });
   } catch (e) { offCode = e.status ?? 1; offOut = (e.stdout || "") + (e.stderr || ""); }
-  ok(offCode === 0, `flag off: weighted-random slot-0 (proportional + memoryless repeats), unchanged (${offOut.trim()})`);
+  ok(offCode === 0, `explicit opt-out keeps weighted-random slot-0 (proportional + memoryless repeats) (${offOut.trim()})`);
 
   // ---- flag ON: arm spread for the in-process checks ---------------------------------------------
   process.env.SHADE_TREE_DIRECTORY = eqPath;

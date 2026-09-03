@@ -2,13 +2,14 @@
 //
 // The client proxy stays the router; curl stays dumb. When SHADE_TREE_DIRECTORY points at a
 // signed directory JSON, the proxy asks here for a candidate ORDER per CONNECT:
-// a weighted-random pick first, then the rest of the fleet as failover targets.
+// a smooth weighted-round-robin pick first, then a weighted-random failover tail.
 // The membership proof is gateway-independent (same root + same epoch verifies at
-// any gateway loading the same members.json), so rotation reuses the cached proof
-// and just dials a different onion. No new proof per rotation.
+// any gateway loading the same members.json), so failover within one tunnel reuses
+// that tunnel's proof and just dials a different onion. Every new tunnel still mints
+// a fresh slot-bound proof.
 //
-// The single-onion path (SHADE_TREE_ONION / tor/hs/hostname) is untouched: if
-// SHADE_TREE_DIRECTORY is unset, directoryEnabled() is false and the client keeps pinning.
+// An explicit single-onion path (SHADE_TREE_ONION) bypasses directory selection. With no explicit
+// source, clients use the current-v4 Elder+signer pair from the bundled default network record.
 //
 // Integration is one line in the client proxy's CONNECT handler (see docs/FLEET.md):
 //   const candidates = await selectCandidates();   // [{ onion }, ...] in try order
@@ -23,17 +24,16 @@ import { loadDirectory, selectionOrder, reportHealth, verifyDirectory, MAX_WEIGH
 import { fetchOverTor } from "../bootnode/fetch.mjs";
 import { verifyAnnounce } from "../bootnode/announce.mjs";
 import { makeStakeVerifier } from "../lib/gateway-registry.mjs";
-import { applyNetworkEnv } from "../lib/network-record.mjs";
+import { applyClientNetworkEnv } from "../lib/network-record.mjs";
 import { createLogger } from "../lib/log.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const clientLog = createLogger("proxy");
 
-// SHADE_TREE_NETWORK=<name>: fill discovery inputs (SHADE_TREE_BOOTNODE_ONION / SHADE_TREE_DIR_SIGNER, or the static
-// SHADE_TREE_DIRECTORY fallback) from the committed network/<name>/bootnode.json BEFORE the constants below
-// snapshot the env. Explicit env always wins (applyNetworkEnv only fills unset keys). Done here, not
-// only in bin/shade-tree.mjs, so `node client/shim.mjs` and the SDK (client/shade-tree-client.mjs) honour it too.
-applyNetworkEnv(process.env);
+// Fill discovery inputs before the constants below snapshot the env. An explicit source wins;
+// SHADE_TREE_NETWORK selects a named record; otherwise clients use the bundled current-v4 default.
+// Done here, not only in bin/shade-tree.mjs, so direct shim and SDK imports get the same safe pin.
+applyClientNetworkEnv(process.env);
 
 // Two directory SOURCES, same signed shape and same pinned-signer verification:
 //   - SHADE_TREE_BOOTNODE_ONION : live discovery. Fetch /directory from the bootnode onion over Tor
@@ -305,14 +305,15 @@ export function reportReceipt(onion, { valid } = {}) {
 }
 
 // ---- quality-aware rotation / load spread (T-FEAT-4) ----------------------------
-// Today slot-0 (the gateway the client proxy actually dials) is a fresh independent weighted-random draw
-// each CONNECT. Over the long run that honors weight, but request-to-request it is memoryless: the
+// Slot-0 (the gateway the client proxy actually dials) uses smooth weighted round-robin by default.
+// A fresh independent weighted-random draw still exists as an explicit opt-out. Over the long run
+// weighted-random honors weight, but request-to-request it is memoryless: the
 // single top-weight gateway keeps winning the draw and gets hammered back-to-back, and equal-weight
 // peers see bursty, clumped load instead of an even spread — the opposite of what a rotation policy
 // wants for load balancing (and traffic concentration is a deanonymization lever this system already
 // clamps weight to fight).
 //
-// With SHADE_TREE_ROTATION_SPREAD armed, slot-0 is chosen by a SMOOTH weighted round-robin (SWRR, the
+// Unless SHADE_TREE_ROTATION_SPREAD is explicitly disabled, slot-0 is chosen by a SMOOTH weighted round-robin (SWRR, the
 // nginx/`ngx_http_upstream` scheduler) over the SAME healthy, weight-clamped, receipt-adjusted pool
 // selectionOrder already selects from. SWRR keeps a per-gateway "current deficit" that advances every
 // CONNECT: each step adds the gateway's effective weight to its deficit, picks the max, then subtracts
@@ -330,21 +331,22 @@ export function reportReceipt(onion, { valid } = {}) {
 //
 // The failover TAIL (slots 1..n, only consulted on a dial timeout) stays weighted-random via the
 // existing selectionOrder over the remaining fleet — spread only needs to govern the gateway actually
-// used. OFF BY DEFAULT: unset => selectCandidates takes the byte-identical `selectionOrder(view)` path
-// and behaves exactly as today. Reuses the health ("down") + receipt-adjusted weight signals already in
-// this module; adds no persistence store (the SWRR deficits are in-memory session state, like health).
+// used. ON BY DEFAULT: only an explicit false value takes the `selectionOrder(view)` weighted-random
+// path. Reuses the health ("down") + receipt-adjusted weight signals already in this module; adds no
+// persistence store (the SWRR deficits are in-memory session state, like health).
 //
-// SHADE_TREE_ROTATION_SPREAD : "1"/"on"/"true"/"yes" to arm smooth spread. Unset/anything else => OFF (default).
+// SHADE_TREE_ROTATION_SPREAD : unset/"1"/"on"/"true"/"yes" => smooth spread (default);
+//                              "0"/"off"/"false"/"no" => weighted-random first choice.
 function parseRotationSpread(raw) {
-  if (raw === undefined) return false;
+  if (raw === undefined || String(raw).trim() === "") return true;
   const v = String(raw).trim().toLowerCase();
-  return v === "1" || v === "on" || v === "true" || v === "yes";
+  return !["0", "off", "false", "no"].includes(v);
 }
 const ROTATION_SPREAD = parseRotationSpread(process.env.SHADE_TREE_ROTATION_SPREAD);
 export function rotationSpreadEnabled() { return ROTATION_SPREAD; }
 
 // Injectable rng for the spread path (jitter seed + failover-tail weighting), so distribution tests
-// are deterministic and don't flake. Only the SHADE_TREE_ROTATION_SPREAD path reads it; the default
+// are deterministic and don't flake. Only the spread path reads it; the explicitly disabled
 // weight-only path stays on selectionOrder's own Math.random, untouched. Test seam, additive.
 let _rng = Math.random;
 export function _setRng(fn) { _rng = typeof fn === "function" ? fn : Math.random; }
@@ -403,10 +405,9 @@ function spreadSelectionOrder(view) {
   return [first, ...selectionOrder(rest, { rng: _rng })];
 }
 
-// The pinned directory signer(s). In a real bundle this is a hardcoded constant set
-// at build time; SHADE_TREE_DIR_SIGNER overrides for dev/testing. There is intentionally
-// NO default: an unpinned directory is trust-on-first-use, which is exactly the
-// poisoning surface the signature exists to close. Set it, or directory mode is off.
+// The pinned directory signer(s). The current v4 default comes from the bundled deployment
+// record; SHADE_TREE_DIR_SIGNER overrides it only when the caller also selects an explicit source.
+// An unpinned directory is never accepted: directory mode remains off without a source+pin pair.
 //
 // SHADE_TREE_DIR_SIGNER accepts a COMMA-SEPARATED list of pubkeys — the signer-rotation
 // OVERLAP SET. This is an allowlist (verifyDirectory accepts a directory signed by ANY
@@ -581,6 +582,7 @@ let loadedAt = 0;
 let lastAcceptedIssued = 0;
 export function _resetIssuedFloor() { lastAcceptedIssued = 0; }
 const REFRESH_MS = Number(process.env.SHADE_TREE_DIRECTORY_REFRESH_MS || 5 * 60 * 1000);
+const POLL_JITTER = 0.2; // spread clients over 80%-120% of the interval; avoids an Elder thundering herd
 
 // ---- optional absolute directory freshness bound (T-FEAT-21) --------------------
 // The monotonic issued FLOOR above only stops rollback WITHIN a session: it refuses a directory
@@ -609,13 +611,16 @@ const DIRECTORY_MAX_AGE_MS = parseMaxAgeMs(process.env.SHADE_TREE_DIRECTORY_MAX_
 // spuriously reject a just-issued directory. Only consulted when the bound is armed.
 const DIRECTORY_MAX_AGE_SKEW_MS = Math.max(0, Number(process.env.SHADE_TREE_DIRECTORY_MAX_AGE_SKEW_MS || 5 * 60 * 1000));
 
-async function ensureLoaded(onEvent) {
+let refreshInFlight = null;
+async function ensureLoaded(onEvent, { force = false } = {}) {
   const now = Date.now();
-  if (loaded && now - loadedAt < REFRESH_MS) return loaded;
-  try {
-    const next = BOOTNODE_ONION
-      ? await loadFromBootnode(onEvent)
-      : await loadDirectory({ path: DIRECTORY_PATH, pinnedSigner: PINNED_SIGNER, cachePath: CACHE_PATH });
+  if (!force && loaded && now - loadedAt < REFRESH_MS) return loaded;
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = (async () => {
+    try {
+      const next = BOOTNODE_ONION
+        ? await loadFromBootnode(onEvent)
+        : await loadDirectory({ path: DIRECTORY_PATH, pinnedSigner: PINNED_SIGNER, cachePath: CACHE_PATH });
     // Rollback / stale-directory replay guard (audit loop-15 F2): a directory's `issued` must
     // never move BACKWARD. The bootnode signs its own directory and an ed25519 signature is
     // valid forever, so a hostile or replaying bootnode could serve an OLD signed directory to
@@ -664,17 +669,65 @@ async function ensureLoaded(onEvent) {
     if (next.source === "cache") {
       clientLog.warn("using last-known-good Canopy", { reason: "fresh-unavailable-or-invalid" });
     }
-  } catch (e) {
-    if (BOOTNODE_ONION && !e.canopyEventEmitted) {
-      emitCanopy(onEvent, "error", { reason: "unavailable-or-invalid" });
+    } catch (e) {
+      if (BOOTNODE_ONION && !e.canopyEventEmitted) {
+        emitCanopy(onEvent, "error", { reason: "unavailable-or-invalid" });
+      }
+      if (loaded) {
+        clientLog.warn("Canopy refresh failed; keeping in-memory fleet", { reason: "unavailable-or-invalid" });
+      } else {
+        throw e; // no fleet at all is fatal for directory mode
+      }
     }
-    if (loaded) {
-      clientLog.warn("Canopy refresh failed; keeping in-memory fleet", { reason: "unavailable-or-invalid" });
-    } else {
-      throw e; // no fleet at all is fatal for directory mode
-    }
+    return loaded;
+  })();
+  try {
+    return await refreshInFlight;
+  } finally {
+    refreshInFlight = null;
   }
-  return loaded;
+}
+
+// A long-lived Proxy should learn new gateway onions even while no CONNECT is arriving. Start a
+// single process-wide, unref'd polling loop after the first verified Canopy load. Every tick forces
+// a signed refresh; verification/rollback failure retains the in-memory last-known-good fleet.
+// SHADE_TREE_DIRECTORY_REFRESH_MS=0 keeps the existing test/dev "reload on every selection" meaning
+// and disables the background timer rather than creating a hot loop.
+let directoryPollTimer = null;
+let pollSetTimeout = setTimeout;
+let pollClearTimeout = clearTimeout;
+let pollRng = Math.random;
+
+function nextPollDelay() {
+  return Math.max(1, Math.round(REFRESH_MS * (1 - POLL_JITTER + 2 * POLL_JITTER * pollRng())));
+}
+
+function scheduleDirectoryPoll() {
+  if (directoryPollTimer || !BOOTNODE_ONION || REFRESH_MS <= 0) return;
+  directoryPollTimer = pollSetTimeout(async () => {
+    directoryPollTimer = null;
+    try { await ensureLoaded(null, { force: true }); }
+    catch { /* ensureLoaded already logs and preserves last-known-good state */ }
+    scheduleDirectoryPoll();
+  }, nextPollDelay());
+  directoryPollTimer?.unref?.();
+}
+
+export function startDirectoryPolling() {
+  scheduleDirectoryPoll();
+}
+
+export function stopDirectoryPolling() {
+  if (directoryPollTimer) pollClearTimeout(directoryPollTimer);
+  directoryPollTimer = null;
+}
+
+// Deterministic timer seam for the polling selftest. Production never calls this.
+export function _setDirectoryPollScheduler({ setTimeoutFn = setTimeout, clearTimeoutFn = clearTimeout, rng = Math.random } = {}) {
+  stopDirectoryPolling();
+  pollSetTimeout = setTimeoutFn;
+  pollClearTimeout = clearTimeoutFn;
+  pollRng = rng;
 }
 
 // ---- capability-aware selection (T-FEAT-10) -------------------------------------
@@ -794,6 +847,7 @@ export function describeFleetAdmits(gateways) {
 // query, verified, cache, or error. It emits nothing for static files or an in-memory cache hit.
 export async function selectCandidates(req = null, adm = null, opts = null) {
   const { dir } = await ensureLoaded(opts?.onEvent);
+  startDirectoryPolling();
   let gateways = dir.gateways;
   if (VERIFY_STAKE) gateways = await filterReverified(gateways);
   // Admission-aware filter (T-FEAT-9). Runs FIRST so a policy mismatch is named precisely even
@@ -825,10 +879,9 @@ export async function selectCandidates(req = null, adm = null, opts = null) {
   // Run selection over the (possibly filtered/adjusted) fleet. Reuse the SAME entry objects so
   // reportHealth's in-place mutation (keyed by onion on dir.gateways) still lands on them.
   const view = gateways === dir.gateways ? dir : { ...dir, gateways };
-  // Rotation/spread policy (T-FEAT-4). OFF by default: selectionOrder(view) is the byte-identical
-  // weight-only path from before. With SHADE_TREE_ROTATION_SPREAD armed, slot-0 is chosen by smooth
-  // weighted round-robin so load spreads evenly across the healthy fleet (no back-to-back hammering
-  // of the top gateway) while the long-run weighted share is preserved exactly.
+  // Rotation/spread policy (T-FEAT-4). ON by default: slot-0 uses smooth weighted round-robin so
+  // load spreads across the healthy fleet without changing long-run weighted share. An explicit
+  // false SHADE_TREE_ROTATION_SPREAD restores the original fully weighted-random order.
   const order = ROTATION_SPREAD ? spreadSelectionOrder(view) : selectionOrder(view);
   // Each candidate carries the gateway's SIGNED accepted-ZK-artifact ad when it has one
   // (caps.artifacts, T-HARD-8) so the client can pick a mutual artifact set before proving.

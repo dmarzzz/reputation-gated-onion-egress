@@ -59,9 +59,9 @@ check(
 check(
   "Sepolia index publishes the explicit testnet staking profile without reviving the legacy preset",
   /deployment\.json[\s\S]*live disposable Protocol v4/.test(sepoliaReadme)
-    && /Testnet staking profile/.test(sepoliaReadme)
-    && /does not reactivate the legacy preset|retired network preset/.test(sepoliaReadme)
-    && /Invited membership material remains private/.test(sepoliaReadme),
+    && /Live discovery and testnet staking/.test(sepoliaReadme)
+    && /retired legacy preset stays disabled|retired network preset/.test(sepoliaReadme)
+    && /Invited membership\s+material remains private/.test(sepoliaReadme),
 );
 check(
   "deployment plan records the research fleet while keeping production blocked on trusted setup",

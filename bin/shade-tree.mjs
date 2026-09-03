@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { readFileSync } from "node:fs";
 import { validateConfig, formatErrors } from "../lib/config.mjs";
-import { applyNetworkEnv } from "../lib/network-record.mjs";
+import { applyClientNetworkEnv, applyNetworkEnv, DEFAULT_CLIENT_NETWORK } from "../lib/network-record.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..");
@@ -55,6 +55,8 @@ const FLAG_ENV = {
   bootnode: "SHADE_TREE_BOOTNODE_ONION",
   directory: "SHADE_TREE_DIRECTORY",
   "dir-signer": "SHADE_TREE_DIR_SIGNER",
+  "directory-refresh-ms": "SHADE_TREE_DIRECTORY_REFRESH_MS",
+  "rotation-spread": "SHADE_TREE_ROTATION_SPREAD",
   "shim-port": "SHADE_TREE_SHIM_PORT",
   // gateway announce / heartbeat
   identity: "SHADE_TREE_GW_IDENTITY",
@@ -154,7 +156,7 @@ function topHelp() {
   console.log(`operator output: --log-level debug|info|warn|error|off --log-format auto|pretty|text|json --metrics-port N --banner|--no-banner --quiet`);
   console.log(`admission (T-FEAT-9): node --admit invited[,staked][,paid] (default invited); proxy --leaf-source auto|invited|staked|paid, --max-anon`);
   console.log(`every --flag maps to an SHADE_TREE_* env var (see docs/CLI.md); flags override the environment.`);
-  console.log(`--network <name> (SHADE_TREE_NETWORK) fills unset discovery/contract vars from network/<name>/{bootnode,contracts}.json.`);
+  console.log(`--network <name> (SHADE_TREE_NETWORK) fills unset vars from network/<name> records; clients default to ${DEFAULT_CLIENT_NETWORK}.`);
 }
 
 function runHelp() {
@@ -170,14 +172,17 @@ function runHelp() {
 
 function proxyHelp(command = "proxy") {
   console.log(`shade-tree ${command}: run the loopback HTTP-CONNECT Proxy for one or more local agents\n`);
-  console.log("usage: shade-tree proxy --bootnode ONION --dir-signer HEX [--limit N] [--tor-port N]");
+  console.log("usage: shade-tree proxy [--bootnode ONION --dir-signer HEX] [--limit N] [--tor-port N]");
   console.log("   or: shade-tree proxy --onion NODE_ONION [--limit N] [--tor-port N]\n");
   console.log("Load the member secret without putting it in shell history or process arguments:");
   console.log("  read -s SHADE_TREE_SECRET && export SHADE_TREE_SECRET\n");
   console.log("Invited profiles also set SHADE_TREE_MEMBERS_FILE. Use the exact tier supplied by the operator;");
   console.log("tier 8 is only a default. Start Tor first, then route one child with:");
   console.log("  shade-tree run -- your-agent\n");
-  console.log("Current v4 Elder onion, signer, membership input, and tier come from one Grove operator.");
+  console.log(`Discovery defaults to the bundled current v4 ${DEFAULT_CLIENT_NETWORK} Elder and refreshes its signed Canopy about every five minutes.`);
+  console.log("An explicit --bootnode/--dir-signer, --directory/--dir-signer, or --onion overrides discovery.");
+  console.log("New tunnels rotate smoothly across healthy weighted gateways by default; --no-rotation-spread restores weighted-random first picks.");
+  console.log("Membership input and the exact tier still come from the Grove operator.");
   console.log("Guide: https://github.com/dmarzzz/shade-tree-node/blob/main/docs/AGENT.md");
 }
 
@@ -365,6 +370,10 @@ async function main() {
     env.SHADE_TREE_BANNER = "never";
     delete flags["no-banner"];
   }
+  if (Object.hasOwn(flags, "no-rotation-spread")) {
+    env.SHADE_TREE_ROTATION_SPREAD = "0";
+    delete flags["no-rotation-spread"];
+  }
   for (const [flag, val] of Object.entries(flags)) {
     // Heartbeat owns a dedicated metrics variable because it runs beside the node. Keep the
     // common --metrics-port interface useful by routing it to that variable for this command.
@@ -375,23 +384,26 @@ async function main() {
     else { passthrough.push(`--${flag}`); if (val !== "true") passthrough.push(val); }
   }
 
-  // SHADE_TREE_NETWORK=<name> (or --network): fill any discovery / contract var that is still UNSET from
-  // the committed network/<name>/{bootnode,contracts}.json records (lib/network-record.mjs). Flags
-  // and explicit env were applied above, so they win; the record is only the default. A missing
-  // or invalid record is a hard error here (never spawn a service pointed at a half-read record).
-  if (env.SHADE_TREE_NETWORK) {
+  // Named network records fill unset values. Client commands additionally use the bundled current
+  // v4 profile when no discovery source was supplied. Explicit flags/env always win, and non-client
+  // services never inherit that client default.
+  const role = COMMAND_ROLE[cmd];
+  if (env.SHADE_TREE_NETWORK || role === "client") {
     try {
-      const filled = applyNetworkEnv(env);
-      if (filled.length) console.error(`shade-tree ${cmd}: network "${env.SHADE_TREE_NETWORK}" supplied ${filled.join(", ")}`);
+      const filled = role === "client" ? applyClientNetworkEnv(env) : applyNetworkEnv(env);
+      if (filled.length) {
+        const network = env.SHADE_TREE_NETWORK || DEFAULT_CLIENT_NETWORK;
+        console.error(`shade-tree ${cmd}: network "${network}" supplied ${filled.join(", ")}`);
+      }
     } catch (e) {
-      console.error(`shade-tree ${cmd}: SHADE_TREE_NETWORK=${env.SHADE_TREE_NETWORK}: ${e.message}`);
+      const network = env.SHADE_TREE_NETWORK || DEFAULT_CLIENT_NETWORK;
+      console.error(`shade-tree ${cmd}: SHADE_TREE_NETWORK=${network}: ${e.message}`);
       process.exit(1);
     }
   }
 
   // Fail fast on invalid config BEFORE spawning a service: print exactly which SHADE_TREE_* var is
   // wrong and why, then exit nonzero (never start the long-running process on a known-bad env).
-  const role = COMMAND_ROLE[cmd];
   if (role && !skipValidate) {
     const result = validateConfig(role, env);
     if (!result.ok) {

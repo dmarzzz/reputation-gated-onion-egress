@@ -8,7 +8,7 @@ per-topic docs; this page is the one-screen-per-topic version. Index: [`README.m
 > **v4 network status.** This checkout speaks envelope v4. There is no repo-maintained public
 > v4 network profile yet; obtain explicit discovery and contract values from a v4 operator or
 > run the local loop below. The legacy Sepolia runtime records are incompatible pre-v4 history.
-> A separate `network/sepolia/deployment.json` records the invited-only v4 research Grove behind
+> A separate `network/sepolia/deployment.json` records the invited-and-staked v4 research Grove behind
 > the public aggregate map, but does not contain the membership inputs required to connect.
 
 ## How it works
@@ -91,10 +91,12 @@ read -s SHADE_TREE_SECRET && export SHADE_TREE_SECRET
 read -r SHADE_TREE_LIMIT && export SHADE_TREE_LIMIT                           # exact enrolled tier
 ./shade-tree-0.4.1-<target>-live enroll --limit "$SHADE_TREE_LIMIT" --out identity.json
 shade-tree leaves --contract <v4-member-set-address> --rpc-url <operator-rpc-url> --out members.json
-./shade-tree-0.4.1-<target>-live egress --bootnode-onion <v4-bootnode.onion> \
-  --signer <v4-directory-signer-hex> \
+./shade-tree-0.4.1-<target>-live egress \
   --identity identity.json --members members.json --target api.ipify.org:443
 ```
+
+That uses the bundled current-v4 Sepolia Elder+signer. Add `--bootnode-onion <elder.onion>
+--signer <matching-signer-hex>` to select an alternate Grove.
 
 ## The local loop
 

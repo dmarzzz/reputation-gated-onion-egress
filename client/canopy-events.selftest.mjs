@@ -85,6 +85,32 @@ async function main() {
     await live.selectCandidates(null, null, { onEvent: (event) => warmEvents.push(event) });
     ok(warmEvents.length === 0, "selection inside the refresh window emits no canopy event");
 
+    console.log("background refresh:");
+    let scheduled = null;
+    live._setDirectoryPollScheduler({
+      setTimeoutFn: (fn, delay) => {
+        scheduled = { fn, delay };
+        return { unref() {} };
+      },
+      clearTimeoutFn: () => {},
+      rng: () => 0.5,
+    });
+    const replacementGateway = keypair();
+    const replacement = signDirectory({
+      version: 1,
+      issued: directory.issued + 1,
+      gateways: [{ onion: pubkeyToOnion(replacementGateway.pub), pubkey: replacementGateway.pub, weight: 1, health: "up" }],
+      signer: signer.pub,
+    }, signer.priv);
+    live._setCanopyFetch(async () => replacement);
+    live.startDirectoryPolling();
+    ok(scheduled?.delay === 600000, "poll loop schedules the default refresh interval with deterministic midpoint jitter");
+    await scheduled.fn();
+    const refreshed = await live.selectCandidates();
+    ok(refreshed.length === 1 && refreshed[0].onion === replacement.gateways[0].onion.replace(/\.onion$/, ""),
+      "idle poll swaps in a newer verified Canopy before the next CONNECT");
+    live.stopDirectoryPolling();
+
     console.log("last-known-good cache:");
     const cachePath = join(work, "cache.lkg.json");
     writeFileSync(cachePath, JSON.stringify(directory) + "\n");

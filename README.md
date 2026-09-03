@@ -65,7 +65,7 @@ live build. Intel macOS has only the v0.4 verifier binary. Pin v0.4.1 with
 provide transfer integrity; GitHub attestations provide the stronger build
 provenance check.
 
-Ask a Grove operator for the exact tier and discovery values first. Create an
+Ask a Grove operator for the exact tier and admission material first. Create an
 owner-only identity locally, then submit only the printed public leaf through
 that operator's admission process:
 
@@ -76,18 +76,15 @@ shade-tree enroll --limit "$SHADE_TREE_LIMIT" --out identity.json > leaf.txt
 
 `enroll` generates identity material; it does not add the leaf to a Grove.
 Continue only after the operator confirms admission and supplies the matching
-member set (or on-chain source), Elder onion, and signer pin. Then start the
-self-contained Proxy:
+member set (or on-chain source). The current v4 Sepolia Elder and signer are
+bundled as the discovery default; an operator can still supply a different pair.
+Then start the self-contained Proxy:
 
 ```bash
-read -r SHADE_TREE_BOOTNODE_ONION
-read -r SHADE_TREE_DIR_SIGNER
 (umask 077; set -C; shade-tree proxy-token > proxy-token.txt)
 IFS= read -r SHADE_TREE_PROXY_TOKEN < proxy-token.txt
 export SHADE_TREE_PROXY_TOKEN
 shade-tree proxy \
-  --bootnode-onion "$SHADE_TREE_BOOTNODE_ONION" \
-  --signer "$SHADE_TREE_DIR_SIGNER" \
   --identity identity.json \
   --members members.json \
   --listen 127.0.0.1:8118
@@ -108,8 +105,8 @@ are removed from the child environment. Software that ignores proxy variables
 must be configured with the authenticated URL
 `http://shade-tree:$SHADE_TREE_PROXY_TOKEN@127.0.0.1:8118`. Rust applications
 can use the `shade-tree-egress` crate; JavaScript applications can import
-[`ShadeTreeClient`](docs/SDK.md). There is no repo-maintained public v4
-connection profile yet.
+[`ShadeTreeClient`](docs/SDK.md). The repo-maintained v4 default covers discovery
+only; a member secret, exact tier, and matching admission input are still required.
 
 ## How it works
 

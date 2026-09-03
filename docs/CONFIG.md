@@ -83,10 +83,10 @@ Read by `client/shim.mjs` / `client/shade-tree-client.mjs` (proxy + library) and
 | `SHADE_TREE_SECRET` | (required) | Member secret (bearer credential from `enroll`); used to mint per-tunnel RLN proofs. | client | `--secret` |
 | `SHADE_TREE_ONION` | (unset) | Pin a single gateway onion (skips directory selection). `.onion` suffix optional. | client | `--onion` |
 | `SHADE_TREE_DIRECTORY` | (unset) | Path to a static signed directory JSON (offline discovery). | client selection | `--directory` |
-| `SHADE_TREE_DIR_SIGNER` | (unset; no default — directory mode is off unless set) | Pinned ed25519 public key of the directory signer (bootnode signer, or the static directory signer). | client selection | `--dir-signer` |
-| `SHADE_TREE_BOOTNODE_ONION` | (unset; or from `network/<SHADE_TREE_NETWORK>/bootnode.json`) | Bootnode onion to fetch the live signed directory from over Tor. Wins over `SHADE_TREE_DIRECTORY` if both set. | client selection | `--bootnode` |
+| `SHADE_TREE_DIR_SIGNER` | current v4 Sepolia Canopy signer when no source is explicit | Pinned ed25519 public key of the directory signer. Explicit Elder/static-directory overrides must supply their matching signer; no TOFU fallback. | client selection | `--dir-signer` |
+| `SHADE_TREE_BOOTNODE_ONION` | current v4 Sepolia Elder when no source is explicit | Elder onion to fetch the live signed directory from over Tor. Wins over `SHADE_TREE_DIRECTORY` if both are explicitly set. | client selection | `--bootnode` |
 | `SHADE_TREE_DIRECTORY_CACHE` | `cache/bootnode-directory.lkg` (bootnode) or `<SHADE_TREE_DIRECTORY>.lkg` (file), else none | Last-known-good directory cache path. | client selection | (none) |
-| `SHADE_TREE_DIRECTORY_REFRESH_MS` | `300000` (5 min) | How often to refresh the loaded directory. | client selection | (none) |
+| `SHADE_TREE_DIRECTORY_REFRESH_MS` | `300000` (5 min) | Base interval for lazy and active live-Canopy refresh. Background polls are jittered ±20%; `0` disables the timer in direct/test use. | client selection | `--directory-refresh-ms` |
 | `SHADE_TREE_SHIM_PORT` | `8888` | Local HTTP-CONNECT proxy listen port (on `127.0.0.1`). | shim | `--shim-port` |
 | `SHADE_TREE_SOCKS_ISOLATION` | enabled | Set `0` to disable per-tunnel SOCKS credentials. With Tor `IsolateSOCKSAuth`, the default gives separate CONNECT tunnels separate Tor streams; without that Tor option the credentials are harmless. | client / Proxy | `ShadeTreeClient({ socksIsolation })` |
 | `SHADE_TREE_SLOTS` | `8` | `K_SLOTS`: the DEFAULT tier's per-epoch rate cap (`userMessageLimit` baked into a leaf enrolled without `--limit`; number of per-slot nullifiers before over-spend). | lib/rln (client + gateway) | (none) |
@@ -278,11 +278,12 @@ export SHADE_TREE_SLASH_CONTRACT=0x<StakedReputationSet>
 # export SHADE_TREE_SLASH_RECEIVER=0x<receiver>    # optional; defaults to the slasher address
 # shade-tree node
 
-# client — live directory from the bootnode, pinned to its signer
+# client — bundled current-v4 Elder+signer by default
 read -s SHADE_TREE_SECRET && export SHADE_TREE_SECRET
 read -r SHADE_TREE_LIMIT && export SHADE_TREE_LIMIT   # exact enrolled tier
-export SHADE_TREE_BOOTNODE_ONION=<bootnode-onion>
-export SHADE_TREE_DIR_SIGNER=<bootnode-signer-pubkey>
+# Optional override pair:
+# export SHADE_TREE_BOOTNODE_ONION=<elder-onion>
+# export SHADE_TREE_DIR_SIGNER=<matching-canopy-signer-pubkey>
 # shade-tree proxy
 ```
 
@@ -343,12 +344,12 @@ Integration seam: `client/selection.mjs` exposes `reportReceipt(onion, { valid }
 
 ## Client rotation / load spread (T-FEAT-4)
 
-Read by `client/selection.mjs`. OPTIONAL, OFF by default — leave `SHADE_TREE_ROTATION_SPREAD` unset and
-slot-0 selection is byte-for-byte today's independent weighted-random draw per CONNECT.
+Read by `client/selection.mjs` and the Rust live client. Smooth spread is ON by default, so successive
+CONNECT tunnels advance the weighted schedule instead of independently re-rolling the first gateway.
 
-By default each CONNECT re-rolls slot-0 (the gateway the shim actually dials) as a fresh weighted-random
-draw: memoryless, so the top-weight gateway keeps winning back-to-back and equal-weight peers see bursty,
-clumped load. With spread armed, slot-0 is chosen by a smooth weighted round-robin (SWRR) over the SAME
+With spread disabled, each CONNECT re-rolls slot-0 (the gateway the shim actually dials) as a fresh
+weighted-random draw: memoryless, so the top-weight gateway can win back-to-back and equal-weight peers
+see bursty, clumped load. By default, slot-0 is chosen by a smooth weighted round-robin (SWRR) over the SAME
 healthy, weight-clamped, receipt-adjusted pool the failover order already selects from. SWRR keeps a
 per-gateway in-memory "current deficit" that advances every CONNECT, giving two properties: (1) the
 just-used gateway drops below its peers and is not re-picked until they have had their proportional turn
@@ -364,4 +365,4 @@ selection order. Reuses the health (`"down"`) + receipt-adjusted weight signals 
 
 | Env var | Default | Controls | Component | Flag |
 |---|---|---|---|---|
-| `SHADE_TREE_ROTATION_SPREAD` | (unset → OFF) | Arm smooth weighted round-robin slot-0 spread: `1`/`on`/`true`/`yes` enables it; anything else (or unset) is OFF (today's weighted-random). | client selection | (none) |
+| `SHADE_TREE_ROTATION_SPREAD` | (unset → ON) | Smooth weighted round-robin for the first gateway on each new tunnel. Set `0`/`off`/`false`/`no` to restore weighted-random selection. | JS/Rust client selection | `--rotation-spread`, `--no-rotation-spread` |

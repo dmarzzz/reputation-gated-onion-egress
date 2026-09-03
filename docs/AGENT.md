@@ -7,9 +7,9 @@ gives the Proxy settings to one child process. The agent path needs neither
 Node.js nor a system Tor daemon.
 
 > [!WARNING]
-> Research preview. There is no repo-maintained public v4 access profile. Get
-> current admission and discovery values from the Grove operator you intend to
-> use. Do not use the retired Sepolia records as a connection profile.
+> Research preview. The current v4 Sepolia Elder and Canopy signer are bundled
+> for discovery, but that is not public access. Get the exact tier and matching
+> membership input from the Grove operator. Retired pre-v4 records remain unusable.
 
 ## 1. Install the live binary
 
@@ -42,11 +42,11 @@ Ask one Grove operator for:
 
 - the exact rate tier (`limit`) your new leaf should use;
 - an invited, staked, or paid admission process;
-- the Elder Tree onion and its raw 64-hex Canopy signer, or one pinned node;
+- an alternate Elder trust pair or pinned node only when not using the bundled default;
 - the member-set input matching the root its nodes verify.
 
-The Elder onion and signer are one trust-pinned pair. Get both from the same
-operator. Then create a new owner-only identity locally:
+An overridden Elder onion and signer are one trust-pinned pair; get both from
+the same operator. Then create a new owner-only identity locally:
 
 ```sh
 read -r SHADE_TREE_LIMIT
@@ -80,14 +80,10 @@ membership verification fails.
 For invited access through an Elder Tree:
 
 ```sh
-read -r SHADE_TREE_BOOTNODE_ONION
-read -r SHADE_TREE_DIR_SIGNER
 (umask 077; set -C; shade-tree proxy-token > proxy-token.txt)
 IFS= read -r SHADE_TREE_PROXY_TOKEN < proxy-token.txt
 export SHADE_TREE_PROXY_TOKEN
 shade-tree proxy \
-  --bootnode-onion "$SHADE_TREE_BOOTNODE_ONION" \
-  --signer "$SHADE_TREE_DIR_SIGNER" \
   --identity identity.json \
   --members members.json \
   --listen 127.0.0.1:8118
@@ -98,9 +94,12 @@ even on loopback: loopback is host-local, not user-local, and another OS account
 must not be able to spend this member's slots. It verifies the signed Canopy and
 reuses one successfully bootstrapped base Arti client. Each logical CONNECT gets
 an isolated Arti view that is reused only for that tunnel's gateway failover, so
-separate tunnels do not share circuits. Use
+separate tunnels do not share circuits. Successive tunnels rotate across healthy
+gateways with smooth weighted round-robin by default; `--no-rotation-spread`
+restores independent weighted-random first choices. Use
 `--directory directory.json --signer <hex>` for a static signed Canopy, or
-`--onion <node.onion>:80` for one pinned node. Staked or paid profiles can use
+`--bootnode-onion <elder.onion> --signer <hex>` to override the bundled Elder,
+or `--onion <node.onion>:80` for one pinned node. Staked or paid profiles can use
 the operator's `--contract` and `--rpc-url` values instead of `--members`.
 
 RLN slot allocation is default-on, durable, and atomic across Rust and

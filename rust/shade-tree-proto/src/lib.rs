@@ -36,7 +36,7 @@
 //! - request-signal prefix = `shade-tree:v4`
 //! - onion address version byte = `0x03`
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 
 use data_encoding::Specification;
@@ -1745,6 +1745,82 @@ pub fn selection_order<'a>(
     order
 }
 
+/// In-memory smooth-weighted-round-robin deficits for successive tunnel selections.
+/// The map is pruned against every new directory, so address churn cannot grow it without bound.
+#[derive(Debug, Default)]
+pub struct SmoothWeightedState {
+    current: HashMap<String, f64>,
+}
+
+/// Choose the first healthy gateway with smooth weighted round-robin, then fill the failover tail
+/// with the existing weighted-random order. Equal weights rotate without immediate repetition;
+/// unequal weights retain their exact long-run share. New gateways receive a small random phase so
+/// independent clients do not emit the same deterministic sequence.
+pub fn spread_selection_order<'a>(
+    dir: &'a Directory,
+    state: &mut SmoothWeightedState,
+    rng: &mut dyn FnMut() -> f64,
+) -> Vec<&'a GatewayEntry> {
+    let all: Vec<&GatewayEntry> = dir.gateways.iter().collect();
+    let healthy: Vec<&GatewayEntry> = all
+        .iter()
+        .copied()
+        .filter(|gateway| gateway.health != "down")
+        .collect();
+    let pool = if healthy.is_empty() { &all } else { &healthy };
+    let positive: Vec<&GatewayEntry> = pool
+        .iter()
+        .copied()
+        .filter(|gateway| clamp_weight(Some(gateway.weight as f64)) > 0.0)
+        .collect();
+    let spread_pool = if positive.is_empty() { pool } else { &positive };
+    if spread_pool.len() < 2 {
+        return selection_order(dir, rng);
+    }
+
+    let live: HashSet<&str> = all.iter().map(|gateway| gateway.onion.as_str()).collect();
+    state
+        .current
+        .retain(|onion, _| live.contains(onion.as_str()));
+
+    let total: f64 = spread_pool
+        .iter()
+        .map(|gateway| clamp_weight(Some(gateway.weight as f64)))
+        .sum();
+    if total <= 0.0 {
+        return selection_order(dir, rng);
+    }
+
+    let mut winner: Option<&GatewayEntry> = None;
+    let mut winner_current = f64::NEG_INFINITY;
+    for gateway in spread_pool {
+        let weight = clamp_weight(Some(gateway.weight as f64));
+        let current = state
+            .current
+            .entry(gateway.onion.clone())
+            .or_insert_with(|| rng() * weight);
+        *current += weight;
+        if *current > winner_current {
+            winner = Some(*gateway);
+            winner_current = *current;
+        }
+    }
+    let Some(winner) = winner else {
+        return selection_order(dir, rng);
+    };
+    if let Some(current) = state.current.get_mut(&winner.onion) {
+        *current -= total;
+    }
+
+    let mut order = vec![winner];
+    let mut exclude = HashSet::from([winner.onion.clone()]);
+    while let Some(gateway) = pick_gateway(dir, &exclude, rng) {
+        order.push(gateway);
+        exclude.insert(gateway.onion.clone());
+    }
+    order
+}
+
 // --------------------------------------------------------------------------
 // Tests
 // --------------------------------------------------------------------------
@@ -1926,6 +2002,57 @@ mod tests {
         assert_eq!(order[2].onion, "down1");
         assert!(order[0].onion.starts_with("up"));
         assert!(order[1].onion.starts_with("up"));
+    }
+
+    #[test]
+    fn smooth_spread_rotates_frequently_and_preserves_weights() {
+        let equal = Directory {
+            version: 1,
+            issued: 0,
+            gateways: vec![
+                gw("a", 100, "up"),
+                gw("b", 100, "up"),
+                gw("c", 100, "up"),
+                gw("d", 100, "up"),
+            ],
+            signer: None,
+            signature: None,
+            signers: None,
+            signatures: None,
+            threshold: None,
+        };
+        let mut state = SmoothWeightedState::default();
+        let mut rng = mulberry32(0x44ef);
+        let mut previous = "";
+        let mut counts = HashMap::<String, usize>::new();
+        for _ in 0..8_000 {
+            let order = spread_selection_order(&equal, &mut state, &mut rng);
+            assert_eq!(order.len(), 4);
+            assert_ne!(order[0].onion, previous);
+            previous = &order[0].onion;
+            *counts.entry(order[0].onion.clone()).or_default() += 1;
+        }
+        assert!(counts.values().all(|count| *count == 2_000));
+
+        let weighted = Directory {
+            version: 1,
+            issued: 0,
+            gateways: vec![gw("heavy", 300, "up"), gw("light", 100, "up")],
+            signer: None,
+            signature: None,
+            signers: None,
+            signatures: None,
+            threshold: None,
+        };
+        let mut state = SmoothWeightedState::default();
+        let mut rng = mulberry32(0x51ed);
+        let mut heavy = 0usize;
+        for _ in 0..8_000 {
+            if spread_selection_order(&weighted, &mut state, &mut rng)[0].onion == "heavy" {
+                heavy += 1;
+            }
+        }
+        assert_eq!(heavy, 6_000);
     }
 
     // -- version negotiation (gateway.mjs / shade-tree-client.mjs) ---------------

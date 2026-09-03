@@ -11,10 +11,11 @@ node or Grove on a host.
 
 > **Current network status.** This checkout speaks envelope v4 only. The committed
 > [`network/sepolia/`](../network/sepolia/README.md) legacy contract and directory files describe
-> the earlier incompatible pre-v4 deployment; they are not runnable defaults for this Proxy,
-> payments, or staking. The directory's separate `deployment.json` records the disposable v4
-> research Grove observed by the public aggregate map. That fleet is invited-only and does not
-> provide a public connection profile.
+> the earlier incompatible pre-v4 deployment; they are not runnable defaults for this Proxy or
+> payments. The directory's separate `deployment.json` records the disposable v4 research Grove,
+> supplies its Elder+Canopy-signer discovery default, and publishes its explicit Sepolia staking
+> path. Invited credentials remain private; staked members provide the published contract and RPC
+> values explicitly.
 
 Everything is one CLI: `shade-tree <command> [--flags]`. Install it:
 
@@ -31,10 +32,10 @@ Agent developers who do not need the repository can use the shorter
 
 ## Path A: connect to an operator's v4 Grove
 
-Ask the operator for a member secret or enrollment path, the exact enrolled tier, and either a
-node onion or the v4 Elder Tree onion plus its pinned Canopy signer. Invited access also needs
-that operator's member list. You need a Tor SOCKS port: `bash scripts/start-tor-client.sh`
-starts one on 9260 (or use `--tor-port 9050` with a system Tor).
+Ask the operator for a member secret or enrollment path, the exact enrolled tier, and the matching
+membership input. The bundled current-v4 Sepolia Elder+signer handles discovery; an alternate Grove
+must also supply its Elder Tree onion and matching Canopy signer. You need a Tor SOCKS port:
+`bash scripts/start-tor-client.sh` starts one on 9260 (or use `--tor-port 9050` with a system Tor).
 
 Load the bearer secret without putting it in shell history or process arguments. Enter the
 operator-supplied tier at the second prompt:
@@ -53,14 +54,15 @@ shade-tree proxy --limit "$SHADE_TREE_LIMIT" --leaf-source invited \
 curl -x http://127.0.0.1:8888 https://api.ipify.org?format=json     # the node's IP
 ```
 
-For signed discovery and rotation, use both values supplied by the same v4 operator:
+For signed discovery and rotation through the current Sepolia Grove, omit discovery flags:
 
 ```bash
 SHADE_TREE_MEMBERS_FILE=/path/from-operator/members.json \
-shade-tree proxy --limit "$SHADE_TREE_LIMIT" --leaf-source invited --tor-port 9260 \
-  --bootnode <v4-elder.onion> \
-  --dir-signer <v4-canopy-signer-hex>
+shade-tree proxy --limit "$SHADE_TREE_LIMIT" --leaf-source invited --tor-port 9260
 ```
+
+For an alternate Grove, add `--bootnode <v4-elder.onion> --dir-signer
+<matching-v4-canopy-signer-hex>` from the same operator.
 
 If that operator enables paid or staked admission, they must also supply the v4 registrar,
 chain, and contract addresses. Do not substitute the checked-in Sepolia values. Generate an

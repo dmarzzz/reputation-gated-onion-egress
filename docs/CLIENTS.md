@@ -2,11 +2,10 @@
 
 A proxy runs beside the agent. A node accepts the proof and provides egress. The Elder Tree serves the signed Canopy. The implementation and environment variables still use `client`, `gateway`, and `bootnode` in places. Those names remain compatible.
 
-> **v4 status.** The current client speaks envelope v4 only. Obtain a v4 gateway onion or a
-> signed directory and pinned signer from the fleet operator. The legacy Sepolia contract and
-> directory files are incompatible pre-v4 history and must not be used as the current client's
-> connection profile. The public aggregate map observes a separate disposable v4 research Grove,
-> but it does not publish the invited membership inputs required to connect.
+> **v4 status.** The current client speaks envelope v4 only. The current disposable v4 Sepolia
+> Grove's Elder+signer pair is bundled as the discovery default. The legacy Sepolia contract and
+> directory files remain incompatible pre-v4 history. Discovery is not admission: the public
+> profile does not publish the invited membership inputs required to connect.
 
 The node needs a **fresh RLN proof per tunnel**. That is what makes the nullifier,
 the per-epoch rate cap, and the slashing work, so *something* client-side must mint it. What
@@ -32,10 +31,9 @@ proxy; just call a function. `client/shade-tree-client.mjs`:
 import { ShadeTreeClient, cleanUp } from "./client/shade-tree-client.mjs";
 
 const shadeTree = new ShadeTreeClient({
-  secret,                                   // enrolled member secret (or SHADE_TREE_SECRET)
-  directory: "./fleet/directory.json",       // signed export supplied by the v4 operator
-  dirSigner: process.env.SHADE_TREE_DIR_SIGNER, // pinned signer supplied out of band
-  torPort: 9260,                            // client Tor SOCKS
+  secret,        // enrolled member secret (or SHADE_TREE_SECRET)
+  torPort: 9260, // client Tor SOCKS; discovery uses the bundled current-v4 Elder+signer
+  // or: bootnode: "…", dirSigner: "…"  to select an alternate signed Canopy
   // or: onion: "…"  to pin a single gateway instead of fleet rotation
 });
 
@@ -52,13 +50,30 @@ cleanUp();  // terminate snarkjs workers so the process can exit
 - `connect("host:443")` → the raw duplex tunnel, if you want your own protocol.
 - Each call rotates gateway + slot and reuses one proof across failover.
 
-For dynamic discovery, set `SHADE_TREE_BOOTNODE_ONION` and `SHADE_TREE_DIR_SIGNER` to the
-operator-supplied v4 values, then construct `new ShadeTreeClient({ secret, torPort })`.
-For a single node, set `SHADE_TREE_ONION` or pass `{ onion }`. There is currently no
-repo-maintained public v4 network profile to select by name.
+With no explicit discovery source, `new ShadeTreeClient({ secret, torPort })` uses the bundled
+current-v4 Sepolia Elder+signer pair. Pass `{ bootnode, dirSigner }` (or set the corresponding
+environment variables) to override them. For a single node, set `SHADE_TREE_ONION` or pass
+`{ onion }`. The live Canopy is refreshed in the background about every five minutes with jitter.
 
 Runnable example: `examples/agent-fetch.mjs`. Point it at your local fleet or an operator's
 v4 configuration before running it.
+
+## Egress selection and switching
+
+For each new CONNECT tunnel, the client filters the verified Canopy by admission policy and
+capabilities, then uses smooth weighted round-robin for the first healthy node. Equal-weight nodes
+alternate evenly; unequal weights retain their long-run share. The remaining nodes form a weighted-
+random failover order for that tunnel. Set `--no-rotation-spread` or
+`SHADE_TREE_ROTATION_SPREAD=0` to opt out and make the first choice weighted-random too.
+
+The same proof, slot, and Tor isolation credential are reused within one tunnel's failover attempt.
+Dial/framing failures rotate to the next onion. Proof, policy, replay, and `payload-limit` refusals
+are terminal and are not routed around. The Rust client treats every gateway refusal as terminal;
+only transport/framing failures rotate. Two local dial failures mark a node down; future selections
+skip it while healthy choices exist, and a later success recovers it. The JavaScript Proxy's
+periodic Canopy refresh adds and removes onions without a restart while carrying forward health for
+unchanged nodes. The Rust Proxy fetches a current signed Canopy at each new CONNECT instead, so its
+next tunnel sees a new list even though it does not poll while idle.
 
 ## Leaf source + admission filtering + `--max-anon` (T-FEAT-9, both options)
 
@@ -86,11 +101,9 @@ the `PaidAccessSet` (**paid**). Each gateway advertises which of those it admits
 - Events: a live Elder refresh emits the local `canopy` phase with `query`, then `verified`, `cache`, or `error`. It contains only the signed issue time and node count when available. No event is sent to another service. Selection then emits `select` as before.
 
 ```bash
-shade-tree proxy --bootnode <v4-elder.onion> \
-  --dir-signer <v4-directory-signer-hex> --max-anon
+shade-tree proxy --max-anon
 
-shade-tree proxy --bootnode <v4-elder.onion> \
-  --dir-signer <v4-directory-signer-hex> --leaf-source paid --limit 32 \
+shade-tree proxy --leaf-source paid --limit 32 \
   --paid-access-contract <v4-paid-set-address>
 ```
 
@@ -107,11 +120,11 @@ SHADE_TREE_TOR_PORT=9260 shade-tree proxy \
 # then: curl -x http://127.0.0.1:8888 https://api.ipify.org
 ```
 
-The bootnode onion and signer are a pair: copy both from the v4 operator and pin the signer
-out of band. Add `SHADE_TREE_LIMIT=32` (`--limit 32`) if your leaf is a tier-32 one, plus the
-v4 paid-set address if it is a paid leaf (`docs/PAYMENTS.md`).
+The default Elder onion and signer are a bundled pair. When overriding them, copy both from the
+same v4 operator and pin the signer out of band. Add `SHADE_TREE_LIMIT=32` (`--limit 32`) if your
+leaf is a tier-32 one, plus the v4 paid-set address if it is a paid leaf (`docs/PAYMENTS.md`).
 
-Env, if you want to set the pieces yourself: `SHADE_TREE_SECRET`, then one discovery source:
+Env, if you want to override discovery: `SHADE_TREE_SECRET`, then one discovery source:
 `SHADE_TREE_BOOTNODE_ONION`+`SHADE_TREE_DIR_SIGNER` (operator's v4 fleet),
 `SHADE_TREE_DIRECTORY`+`SHADE_TREE_DIR_SIGNER` (an operator-supplied static signed directory), or
 `SHADE_TREE_ONION` (pin one gateway); plus `SHADE_TREE_TOR_HOST`/`SHADE_TREE_TOR_PORT`. The routed
@@ -145,8 +158,9 @@ export SHADE_TREE_PROXY_TOKEN
 ./target/release/shade-tree run -- your-agent
 ```
 
-Use `--directory <file> --signer <hex>` or `--bootnode-onion <onion>
---signer <hex>` instead of `--onion` for signed discovery. Create a new
+Omit the transport flags to use the bundled current-v4 Elder+signer. Use
+`--directory <file> --signer <hex>` or `--bootnode-onion <onion> --signer <hex>`
+to override signed discovery, or `--onion` to pin a node. Create a new
 `identity.json` with `shade-tree enroll --limit N --out identity.json`, send
 only its printed public leaf through the operator's admission process, and wait
 for the matching root/member input. Identity creation does not itself admit the

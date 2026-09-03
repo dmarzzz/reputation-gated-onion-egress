@@ -120,9 +120,13 @@ set. Use `shade-tree identity` only when deterministically deriving
 from an existing secret. In both cases, `identity.json` contains the member
 secret and must remain local.
 
-Dynamic discovery can replace `--onion` with `--directory <file> --signer
-<hex>` or `--bootnode-onion <onion> --signer <hex>`; see `shade-tree --help`
-for the full set of egress options.
+With no transport flag, dynamic discovery uses the current v4 Sepolia Elder and
+signer embedded from `network/sepolia/deployment.json`. Override it with
+`--directory <file> --signer <hex>`, `--bootnode-onion <onion> --signer <hex>`,
+or `--onion <node.onion>`; see `shade-tree --help` for all egress options.
+Directory-backed tunnels use smooth weighted round-robin for their first gateway
+by default. Pass `--no-rotation-spread` or set `SHADE_TREE_ROTATION_SPREAD=0` to
+restore independent weighted-random first choices.
 
 Rust applications that need an in-process stream API can use the
 `shade-tree-egress` workspace crate through a Git or path dependency. It is not

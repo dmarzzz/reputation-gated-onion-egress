@@ -605,10 +605,15 @@ export class ShadeTreeClient {
     // Injectable SOCKS client (tests pass a fake); defaults to the real `socks` lib.
     this._socks = opts.socksClient || SocksClient;
     // Gateway selection: a pinned onion, or a signed directory (fleet rotation).
+    if (opts.network) process.env.SHADE_TREE_NETWORK = String(opts.network);
+    if (opts.directoryRefreshMs != null) process.env.SHADE_TREE_DIRECTORY_REFRESH_MS = String(opts.directoryRefreshMs);
+    if (opts.rotationSpread != null) process.env.SHADE_TREE_ROTATION_SPREAD = String(opts.rotationSpread);
     this.onion = (opts.onion || process.env.SHADE_TREE_ONION || "").replace(/\.onion$/, "") || null;
+    const bootnode = opts.bootnode || process.env.SHADE_TREE_BOOTNODE_ONION || null;
     const dir = opts.directory || process.env.SHADE_TREE_DIRECTORY || null;
     const signer = opts.dirSigner || process.env.SHADE_TREE_DIR_SIGNER || null;
     // selection.mjs captures these at import; set them BEFORE its (lazy) import.
+    if (bootnode) process.env.SHADE_TREE_BOOTNODE_ONION = bootnode;
     if (dir) process.env.SHADE_TREE_DIRECTORY = dir;
     if (signer) process.env.SHADE_TREE_DIR_SIGNER = signer;
     this._selection = null;
@@ -700,7 +705,7 @@ export class ShadeTreeClient {
       const host = (await readFile(join(HERE, "..", "tor", "hs", "hostname"), "utf8")).trim();
       return [{ onion: host.replace(/\.onion$/, ""), artifacts: null }];
     } catch {
-      throw new Error("ShadeTreeClient: no gateway — set { onion } or { directory, dirSigner }");
+      throw new Error("ShadeTreeClient: no gateway — restore the bundled network profile or set { onion }, { bootnode, dirSigner }, or { directory, dirSigner }");
     }
   }
 
