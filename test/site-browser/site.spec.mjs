@@ -53,7 +53,11 @@ test("signature sections match their approved visual baselines", async ({ page }
 
   const how = page.locator(".how-panel");
   await how.scrollIntoViewIfNeeded();
-  await expect(how).toHaveScreenshot("how-it-works.png", { timeout: 30_000 });
+  // Linux and macOS Chromium round one responsive text row in opposite
+  // directions. Keep reviewed baselines for both instead of letting a one-pixel
+  // platform difference make local approval overwrite the canonical CI image.
+  const howSnapshot = process.platform === "darwin" ? "how-it-works-macos.png" : "how-it-works.png";
+  await expect(how).toHaveScreenshot(howSnapshot, { timeout: 30_000 });
 
   await testInfo.attach("viewport", {
     body: JSON.stringify(testInfo.project.use.viewport),
